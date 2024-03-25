@@ -1,0 +1,61 @@
+# task config
+task: singlecombat_shoot
+
+# simulation config
+sim_freq: 60
+agent_interaction_steps: 12 # step 0.2s
+
+# termination config
+max_steps: 1000             # episode length: 200s
+altitude_limit: 2500
+acceleration_limit_x: 10.0
+acceleration_limit_y: 10.0
+acceleration_limit_z: 10.0
+
+rule_aircraft_configs: {
+  R0001: { # Rule
+    team: Red,
+    model: f16,
+    init_state: {
+      ic_long_gc_deg: 124.00,  #126.93,  #127.02000,
+      ic_lat_geod_deg: 37.00, #38.26,   #37.96000,
+      ic_h_sl_ft: 23000,
+      ic_psi_true_deg: 0.0,
+      ic_u_fps: 800.0,
+    },
+    missile: 2,
+  },
+}
+
+# aircraft config
+ai_aircraft_configs: {
+  A0100: { # AI
+    team: Blue,
+    model: f16,
+    init_state: {
+      ic_h_sl_ft: 23000,
+      ic_lat_geod_deg: 37.00,
+      ic_long_gc_deg: 124.10,
+      ic_psi_true_deg: 0.0,
+      ic_u_fps: 800.0,
+    },
+    missile: 2,
+  }
+}
+# (lontitude, latitude, altitude)
+battle_field_center: [124.00, 37.00, 0.0]
+
+# reward config
+MissilePostureReward_scale: 30
+
+PostureReward_scale: 15.0
+PostureReward_potential: true
+PostureReward_orientation_version: v2
+PostureReward_range_version: v3
+
+AltitudeReward_safe_altitude: 4.0
+AltitudeReward_danger_altitude: 3.5
+AltitudeReward_Kv: 0.2
+
+EventDrivenReward_scale: 1
+EventDrivenReward_potential: true
