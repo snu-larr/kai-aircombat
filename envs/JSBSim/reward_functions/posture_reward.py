@@ -56,7 +56,7 @@ class PostureReward(BaseRewardFunction):
                 * (np.arctanh(1. - max(2 * TA / np.pi, 1e-4))) / (2 * np.pi) + 0.5
         elif version == 'v2':
             return lambda AO, TA: 1 / (50 * AO / np.pi + 2) + 1 / 2 \
-                + min((np.arctanh(1. - max(2 * TA / np.pi, 1e-4))) / (2 * np.pi), 0.) + 0.5
+                + min((np.arctanh(1. - min(max(2 * TA / np.pi, 1e-4), 1.9999))) / (2 * np.pi), 0.) + 0.5
         else:
             raise NotImplementedError(f"Unknown orientation function version: {version}")
 

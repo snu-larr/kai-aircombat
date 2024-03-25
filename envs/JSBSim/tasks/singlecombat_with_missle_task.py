@@ -177,10 +177,10 @@ class SingleCombatShootMissileTask(SingleCombatDodgeMissileTask):
         # aileron, elevator, rudder, throttle, shoot control
         # self.action_space = spaces.Tuple([spaces.MultiDiscrete([41, 41, 41, 30]), spaces.Discrete(2)])
         
-        # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff attack, Flare attack, Jammer On, Radar On, Radar Locking
+        # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff/Flare attack, Jammer On, Radar On, target
         # self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 2, 2])
         self.action_space = spaces.Tuple([
-            spaces.MultiDiscrete([41, 41, 41, 30]), spaces.Discrete(2), spaces.Discrete(2),
+            spaces.MultiDiscrete([41, 41, 41, 30]), 
             spaces.Discrete(2), spaces.Discrete(2),
             spaces.Discrete(2), spaces.Discrete(2),
             spaces.Discrete(2), spaces.Discrete(2), spaces.Discrete(2)

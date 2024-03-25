@@ -288,7 +288,7 @@ class UnControlAircraftSimulator(BaseSimulator):
         # 피격 판정 중 자신이 맞았다면 반영
         for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():
             for tgt_id, dmg in tgt_id_dmg_dict.items():
-                if (tgt_id == self.uid):
+                if (tgt_id == ownship_id):
                     self.bloods -= dmg    
         
         if self.bloods <= 0:
@@ -749,3 +749,122 @@ class MissileSimulator(BaseSimulator):
         # update mass
         if self._t < self._t_thrust:
             self._m = self._m - self.dt * self._dm
+
+class UnControlSAMSimulator(BaseSimulator):
+
+    ALIVE = 0
+    CRASH = 1       # low altitude / extreme state / overload
+    SHOTDOWN = 2    # missile attack
+
+    def __init__(self,
+                 uid: str = "S0100",
+                 color: TeamColors = "Red",
+                 model: str = 'SAM',
+                 init_state: dict = {},
+                 origin: tuple = (120.0, 60.0, 0.0),
+                 sim_freq: int = 60, **kwargs):
+        
+        super().__init__(uid, color, 1 / sim_freq)
+        self.model = model
+        self.init_state = init_state
+        self.lon0, self.lat0, self.alt0 = origin
+        self.bloods = 100
+        self.__status = UnControlSAMSimulator.ALIVE
+        
+        # dictionary
+        self.property_dict = {}
+
+        self.launch_missiles = []   # type: List[MissileSimulator]
+        self.under_missiles = []    # type: List[MissileSimulator]
+
+        # recv data
+        self.recv_data = ''
+        self.sam_id_name, self.sam_id_state = {}, {}
+
+        # initialize simulator
+        self.reload()
+
+    @property
+    def is_alive(self):
+        return self.__status == UnControlSAMSimulator.ALIVE
+
+    @property
+    def is_crash(self):
+        return self.__status == UnControlSAMSimulator.CRASH
+
+    @property
+    def is_shotdown(self):
+        return self.__status == UnControlSAMSimulator.SHOTDOWN
+
+    def crash(self):
+        self.__status = UnControlSAMSimulator.CRASH
+
+    def shotdown(self):
+        self.__status = UnControlSAMSimulator.SHOTDOWN
+
+    def reload(self, new_state: Union[dict, None] = None, new_origin: Union[tuple, None] = None):
+        """Reload aircraft simulator
+        """
+        super().reload()
+
+        # reset temp simulator links
+        self.bloods = 100
+        self.__status = UnControlSAMSimulator.ALIVE
+
+        # assign new properties
+        if new_state is not None:
+            self.init_state = new_state
+        if new_origin is not None:
+            self.lon0, self.lat0, self.alt0 = new_origin
+
+    def run(self):
+        pass
+
+    def close(self):
+        pass
+
+    def get_property_values(self, props):
+        ret = []
+        for prop in props:
+            try:
+                ret.append(self.property_dict[prop.name_jsbsim])
+            except:
+                print("Key : " + str([prop.name_jsbsim]))
+        
+        return ret
+    
+    def parsing_data(self):
+        self.mu_id_target_id_dmg = {}
+        packet_datas = self.recv_data.split("/")
+        
+        for packet_data in packet_datas:
+            header, id, data = packet_data.split("|", 2)
+            cnt = int(data.split("<")[0])
+            data = re.search(r'\<(.*?)\>', data).group(1)
+
+            if (id == "7013"):
+                sam_id, sam_name, iff, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                self.sam_id_name[sam_id] = sam_name
+                self.sam_id_state[sam_id] = [lon, lat, alt]
+
+    def _update_properties(self):
+        ################################
+        ownsam_id = [id for id, name in self.sam_id_name.items() if name == self.uid]
+        lon, lat, alt = self.sam_id_state[ownsam_id]
+
+        self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
+        self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)
+        self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
+        self._geodetic[:] = [lon, lat, alt]
+        self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
+
+        ################################
+        # 피격 판정 중 자신이 맞았다면 반영
+        for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():
+            for tgt_id, dmg in tgt_id_dmg_dict.items():
+                if (tgt_id == ownsam_id):
+                    self.bloods -= dmg    
+        
+        if self.bloods <= 0:
+            self.shotdown()
+        ################################

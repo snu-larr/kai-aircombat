@@ -211,7 +211,7 @@ class BaseEnv(gym.Env):
 
                 # missile check
                 if (action != None):
-                    gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock, target_idx = action[agent_id][4:]
+                    gun_trigger, aim9_trigger, aim120_trigger, chaff_flare_trigger, jammer_trigger, radar_trigger, target_idx = action[agent_id][4:]
                     # gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = action[agent_id][4:]
                     try:
                         target_id = [id for idx, id in enumerate(self.agents.keys()) if (idx == target_idx and id[0] == "R")][0]
@@ -219,16 +219,15 @@ class BaseEnv(gym.Env):
                         target_id = "X"
                 else:
                     target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
-                    chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = 0, 0, 0, 0, 0  
+                    chaff_flare_trigger, jammer_trigger, radar_trigger = 0, 0, 0
                     target_id = "X"
 
                 gun_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|0>" if gun_trigger else ""
                 aim9_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|1>" if aim9_trigger or target_id != "X" else ""
                 aim120_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|2>" if aim120_trigger or target_id != "X" else ""
-                chaff_msg = "ORD|9300|1<" + agent_id + ">" if chaff_trigger else ""
-                flare_msg = "ORD|9301|1<" + agent_id + ">" if flare_trigger else ""
+                chaff_flare_msg = "ORD|9300|1<" + agent_id + ">" if chaff_flare_trigger else ""
                     
-        msg = ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_msg + flare_msg
+        msg = ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_flare_msg
         msg = msg.encode()
         self.socket.sendall(msg)
         ###################

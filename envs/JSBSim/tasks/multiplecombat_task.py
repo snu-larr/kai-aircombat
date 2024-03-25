@@ -19,7 +19,7 @@ class MultipleCombatTask(SingleCombatTask):
         self.reward_functions = [
             AltitudeReward(self.config),
             PostureReward(self.config),
-            EventDrivenReward(self.config)
+            # EventDrivenReward(self.config)
         ]
 
         self.termination_conditions = [
@@ -81,8 +81,8 @@ class MultipleCombatTask(SingleCombatTask):
         # aileron, elevator, rudder, throttle
         # self.action_space = spaces.MultiDiscrete([41, 41, 41, 30])
 
-        # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff attack, Flare attack, Jammer On, Radar On, Radar Locking
-        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 2, 2, 4])
+        # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff/Flare attack, Jammer On, Radar On
+        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 4])
         # self.action_space = spaces.Tuple([
         #     spaces.MultiDiscrete([41, 41, 41, 30]), spaces.Discrete(2),
         #     spaces.Discrete(2), spaces.Discrete(2),
