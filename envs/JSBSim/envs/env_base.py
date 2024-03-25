@@ -198,7 +198,7 @@ class BaseEnv(gym.Env):
 
         return self._pack(obs), self._pack(rewards), self._pack(dones), info
 
-    def socket_send_recv(self, action):
+    def socket_send_recv(self, action = None):
         # 데이터 송신
         for agent_id in self.agents.keys():
             if (agent_id[0] != "R"):
@@ -210,24 +210,24 @@ class BaseEnv(gym.Env):
                     str(round(math.sqrt(vx**2 + vy**2 + vz**2), 6)) + "|9>"
 
                 # missile check
-                target_idx, gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = action[agent_id][4:]
-                target_id = [id for idx, id in enumerate(self.agents.keys()) if (idx == target_idx and id[0] == "R")][0]
-                   
-                if (gun_trigger):
-                   gun_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|0>"
+                if (action != None):
+                    gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock, target_idx = action[agent_id][4:]
+                    # gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = action[agent_id][4:]
+                    try:
+                        target_id = [id for idx, id in enumerate(self.agents.keys()) if (idx == target_idx and id[0] == "R")][0]
+                    except:
+                        target_id = "X"
+                else:
+                    target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
+                    chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = 0, 0, 0, 0, 0  
+                    target_id = "X"
 
-                if (aim9_trigger):
-                    aim9_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|1>"
-
-                if (aim120_trigger):
-                    aim120_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|2>"
-
-                if (chaff_trigger):
-                    chaff_msg = "ORD|9300|1<" + agent_id + ">"
-
-                if (flare_trigger):
-                    flare_msg = "ORD|9301|1<" + agent_id + ">"
-
+                gun_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|0>" if gun_trigger else ""
+                aim9_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|1>" if aim9_trigger or target_id != "X" else ""
+                aim120_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|2>" if aim120_trigger or target_id != "X" else ""
+                chaff_msg = "ORD|9300|1<" + agent_id + ">" if chaff_trigger else ""
+                flare_msg = "ORD|9301|1<" + agent_id + ">" if flare_trigger else ""
+                    
         msg = ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_msg + flare_msg
         msg = msg.encode()
         self.socket.sendall(msg)
@@ -248,6 +248,7 @@ class BaseEnv(gym.Env):
                 mu_id_target_id_dmg = self.agents[agent_id].mu_id_target_id_dmg
                 ac_id_name = self.agents[agent_id].ac_id_name
 
+        for agent_id in self.agents.keys():
             if (agent_id[0] == "A"):
                 # 무장 피격 로직
                 for mu_id, target_id_dmg_dict in mu_id_target_id_dmg.items():
@@ -258,18 +259,31 @@ class BaseEnv(gym.Env):
                 if (self.agents[agent_id].bloods < 0):
                     self.agents[agent_id].shotdown()
                 else:
+                    nearest_munition = []
+                    nearest_dist = 999999
+
                     # 무장 발견 로직
                     ac_lon, ac_lat, ac_alt = self.agents[agent_id].get_geodetic()
                     for mu_id, mu_state in mu_id_state_detected_munition_by_ai.items():
                         mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v = mu_state
 
+                        # print("XXX")
+                        # print(str(ac_lon) + " | " + str(ac_lat) + " | " + str(ac_alt))
+                        # print(str(mu_lon) + " | " + str(mu_lat) + " | " + str(mu_alt))
+                        # print(str(std_lon) + " | " + str(std_lat) + " | " + str(std_alt))
+
                         # deg deg m -> m m m
                         ego_position = LLA2NEU(ac_lon, ac_lat, ac_alt, std_lon, std_lat, std_alt)
                         enm_position = LLA2NEU(mu_lon, mu_lat, mu_alt, std_lon, std_lat, std_alt)
 
+                        dist = math.sqrt((ego_position[0] - enm_position[0]) ** 2 + (ego_position[1] - enm_position[1]) ** 2 + (ego_position[2] - enm_position[2]) ** 2)
+                        if (dist < nearest_dist):
+                            nearest_munition = [mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v]
 
-
-                        # ac 에 가장 가까운 munition 을 선택하고, 해당 미사일을 ac의 nearest_munition 변수에 추가
+                    # ac 에 가장 가까운 munition 을 선택하고, 해당 미사일을 ac의 nearest_munition 변수에 추가
+                    if (len(nearest_munition) > 0):
+                        self.agents[agent_id].nearest_munition = nearest_munition
+                    
 
     def get_obs(self):
         """Returns all agent observations in a list.

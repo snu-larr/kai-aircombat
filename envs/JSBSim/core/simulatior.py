@@ -201,50 +201,51 @@ class UnControlAircraftSimulator(BaseSimulator):
             cnt = int(data.split("<")[0])
             data = re.search(r'\<(.*?)\>', data).group(1)
 
-            if (header == "7011"): # 항공기 설정
-                ac_id, ac_name, iff = data.split("|")
+            if (id == "7011"): # 항공기 설정
+                ac_id, ac_name, iff = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.ac_id_name[ac_id] = ac_name
                 self.ac_name_id[ac_name] = ac_id
 
-            if (header == "7015"): # 전자장비 설정
-                ed_id, ed_name, iff, upid = data.split("|")
+            if (id == "7015"): # 전자장비 설정
+                ed_id, ed_name, iff, upid = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.ed_id_name[ed_id] = ed_name
                 self.ed_name_id[ed_name] = ed_id
                 self.ed_id_upid[ed_id] = upid
 
-            if (header == "7016"): # 무장 설정
-                mu_id, mu_name, iff, upid = data.split("|")
+            if (id == "7016"): # 무장 설정
+                mu_id, mu_name, iff, upid = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_name[mu_id] = mu_name
                 self.mu_name_id[mu_name] = mu_id
                 self.mu_id_upid[mu_id] = upid 
 
-            if (header == "7101"): # 항공기 기동
-                id, lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = data.split("|")
-                self.ac_id_state[id] = [lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad]
+            if (id == "7101"): # 항공기 기동
+                id, lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = [float(x) if x.replace('.', '', 1).isdigit() else x for x in data.split("|")]
+                self.ac_id_state[id] = [float(lon), float(lat), float(alt), float(r), float(p), float(y), float(vn), float(ve), float(vd), float(vbx), float(vby), float(vbz), float(vc), float(an), float(ae), float(ad)]
 
-            if (header == "7102"): # 미사일 기동
-                mu_id, lon, lat, alt, r, p, y, v = data.split("|")
+            if (id == "7102"): # 미사일 기동
+                mu_id, lon, lat, alt, r, p, y, v = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_state[mu_id] = [lon, lat, alt, r, p, y, v] 
             
-            if (header == "7201"): # 레이더 탐지
-                ed_id, target_id = data.split("|")
+            if (id == "7201"): # 레이더 탐지
+                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.rad_id_state[ed_id] = target_id
 
-            if (header == "7202"): # RWR 
-                ed_id, target_id = data.split("|")
+            if (id == "7202"): # RWR 
+                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.rwr_id_state[ed_id] = target_id
 
-            if (header == "7203"): # MWS
-                ed_id, target_id = data.split("|")
+            if (id == "7203"): # MWS
+                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mws_id_state[ed_id] = target_id
 
-            if (header == "7401"): # 미사일 피격
-                mu_id, target_id, dmg = data.split("|")
+            if (id == "7401"): # 미사일 피격
+                mu_id, target_id, dmg = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_target_id_dmg[mu_id] = {**self.mu_id_target_id_dmg, **{target_id: dmg}}
 
     def _update_properties(self):
         ################################
         ownship_id = [id for name, id in self.ac_name_id.items() if name == self.uid][0]
+        
         for ed_id, target_id in {**self.rad_id_state, **self.rwr_id_state}.items():
             if (target_id == ownship_id and self.ac_id_name[self.ed_id_upid[ed_id]][0] == "A"):
 
@@ -278,7 +279,7 @@ class UnControlAircraftSimulator(BaseSimulator):
         
         ################################
         for ed_id, target_id in self.mws_id_state.items():
-            # 해당 전자장비가 자신의 것인 것만 고려하여 MWS 결과 반영
+            # AI 가 가지고 있는 MWS 로 무장 정보를 얻게 되면 해당 값을 공유
             if (self.ac_id_name[self.ed_id_upid[ed_id]][0] == "A"):
                 lon, lat, alt, r, p, y, v = self.mu_id_state[target_id]
                 self.mu_id_state_detected_munition_by_ai[target_id] = [lon, lat, alt, r, p, y, v]
