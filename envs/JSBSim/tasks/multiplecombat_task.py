@@ -82,7 +82,7 @@ class MultipleCombatTask(SingleCombatTask):
         # self.action_space = spaces.MultiDiscrete([41, 41, 41, 30])
 
         # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff attack, Flare attack, Jammer On, Radar On, Radar Locking
-        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 2, 2, 4])
         # self.action_space = spaces.Tuple([
         #     spaces.MultiDiscrete([41, 41, 41, 30]), spaces.Discrete(2),
         #     spaces.Discrete(2), spaces.Discrete(2),

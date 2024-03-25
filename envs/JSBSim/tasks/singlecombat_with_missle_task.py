@@ -183,7 +183,7 @@ class SingleCombatShootMissileTask(SingleCombatDodgeMissileTask):
             spaces.MultiDiscrete([41, 41, 41, 30]), spaces.Discrete(2), spaces.Discrete(2),
             spaces.Discrete(2), spaces.Discrete(2),
             spaces.Discrete(2), spaces.Discrete(2),
-            spaces.Discrete(2), spaces.Discrete(2), spaces.Discrete(2)
+            spaces.Discrete(2), spaces.Discrete(2) # , spaces.Discrete(2)
         ])
         self.stick_action_dim = self.action_space[0].shape[0]
 

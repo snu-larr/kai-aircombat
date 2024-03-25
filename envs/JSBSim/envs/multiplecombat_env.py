@@ -91,7 +91,7 @@ class MultipleCombatEnv(BaseEnv):
                 sim.run()
             
         # ARES 와 소켓 통신
-        self.socket_send_recv()
+        self.socket_send_recv(action)
 
         self.task.step(self)
         obs = self.get_obs()
