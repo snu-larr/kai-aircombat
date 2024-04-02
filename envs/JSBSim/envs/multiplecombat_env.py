@@ -39,7 +39,7 @@ class MultipleCombatEnv(BaseEnv):
         self.reset_simulators()
 
         # ARES 와 소켓 통신
-        self.socket_send_recv()
+        self.socket_send_recv(reset = True)
 
         self.task.reset(self)
         obs = self.get_obs()

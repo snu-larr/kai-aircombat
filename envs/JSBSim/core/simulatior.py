@@ -136,6 +136,7 @@ class UnControlAircraftSimulator(BaseSimulator):
         self.ac_id_state, self.mu_id_state = {}, {}
         self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
         self.mu_id_state_detected_munition_by_ai = {}
+        self.ac_id_state_detected_by_ai = {}
         self.mu_id_target_id_dmg = {}
 
         # initialize simulator
@@ -284,6 +285,13 @@ class UnControlAircraftSimulator(BaseSimulator):
                 lon, lat, alt, r, p, y, v = self.mu_id_state[target_id]
                 self.mu_id_state_detected_munition_by_ai[target_id] = [lon, lat, alt, r, p, y, v]
             
+        ################################
+        for ed_id, target_id in self.rad_id_state.items():
+            # AI 가 가지고 있는 radar 로 상대 (규칙기반) 정보를 얻게 되면 해당 값을 공유
+            if (self.ac_id_name[self.ed_id_upid[ed_id]][0] == "A"):
+                lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[target_id]
+                self.ac_id_state_detected_by_ai[target_id] = [lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad]
+
         ################################
         # 피격 판정 중 자신이 맞았다면 반영
         for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():

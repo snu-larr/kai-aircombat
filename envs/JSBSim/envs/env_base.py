@@ -8,6 +8,7 @@ from ..utils.utils import parse_config, LLA2ECEF, LLA2NEU
 
 import socket
 import math
+import traceback
 
 class BaseEnv(gym.Env):
     """
@@ -43,7 +44,9 @@ class BaseEnv(gym.Env):
         self.socket.connect((self.server_ip, self.port))
 
         # id - state
+        self.ac_id_name = {}
         self.mu_id_state = {}
+        self.ac_id_state_detected_by_ai = {}
         ###
 
         self.load()
@@ -133,8 +136,13 @@ class BaseEnv(gym.Env):
         for sim in self._jsbsims.values():
             sim.reload()
         
+        # state reset
+        self.ac_id_name = {}
+        self.mu_id_state = {}
+        self.ac_id_state_detected_by_ai = {}
+
         # ARES 와 소켓 통신
-        self.socket_send_recv()
+        self.socket_send_recv(reset = True)
         
         self._tempsims.clear()
         # reset task
@@ -198,8 +206,9 @@ class BaseEnv(gym.Env):
 
         return self._pack(obs), self._pack(rewards), self._pack(dones), info
 
-    def socket_send_recv(self, action = None):
+    def socket_send_recv(self, action = None, reset = False):
         # 데이터 송신
+        msg = ""
         for agent_id in self.agents.keys():
             if (agent_id[0] != "R"):
                 lon, lat, alt = self.agents[agent_id].get_geodetic()
@@ -213,9 +222,11 @@ class BaseEnv(gym.Env):
                 if (action != None):
                     gun_trigger, aim9_trigger, aim120_trigger, chaff_flare_trigger, jammer_trigger, radar_trigger, target_idx = action[agent_id][4:]
                     # gun_trigger, aim9_trigger, aim120_trigger, chaff_trigger, flare_trigger, jammer_trigger, radar_trigger, radar_lock = action[agent_id][4:]
-                    try:
-                        target_id = [id for idx, id in enumerate(self.agents.keys()) if (idx == target_idx and id[0] == "R")][0]
-                    except:
+                    
+                    # radar locking 이 안된경우에는 target idx 값이 무의미하도록 변경 필요, ex) [target_idx : 3 / target_id : R0001]
+                    if (target_idx in self.ac_id_state_detected_by_ai.keys()):
+                        target_id = self.ac_id_name[target_idx]
+                    else:
                         target_id = "X"
                 else:
                     target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
@@ -226,8 +237,17 @@ class BaseEnv(gym.Env):
                 aim9_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|1>" if aim9_trigger or target_id != "X" else ""
                 aim120_msg = "ORD|9200|3<" + agent_id + "|" + target_id + "|2>" if aim120_trigger or target_id != "X" else ""
                 chaff_flare_msg = "ORD|9300|1<" + agent_id + ">" if chaff_flare_trigger else ""
-                    
-        msg = ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_flare_msg
+                msg += ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_flare_msg
+
+        reset_msg = "ORD|9400" if (reset) else ""
+        
+        if (reset):
+            for line in traceback.format_stack():
+                print(line.strip())
+
+
+        msg += reset_msg
+
         msg = msg.encode()
         self.socket.sendall(msg)
         ###################
@@ -238,6 +258,9 @@ class BaseEnv(gym.Env):
         temp_agent_id = [id for id in self.agents.keys()][0]
         std_lon, std_lat, std_alt = self.agents[temp_agent_id].lon0, self.agents[temp_agent_id].lat0, self.agents[temp_agent_id].alt0
         
+        # 무장 정보
+
+
         for agent_id in self.agents.keys():
             if (agent_id[0] == "R"):
                 self.agents[agent_id].recv_data = data
@@ -245,14 +268,17 @@ class BaseEnv(gym.Env):
                 self.agents[agent_id]._update_properties()
                 mu_id_state_detected_munition_by_ai = self.agents[agent_id].mu_id_state_detected_munition_by_ai
                 mu_id_target_id_dmg = self.agents[agent_id].mu_id_target_id_dmg
-                ac_id_name = self.agents[agent_id].ac_id_name
+                self.ac_id_name = self.agents[agent_id].ac_id_name
+
+                ac_lon, ac_lat, ac_alt = self.agents[agent_id].get_geodetic()
+                print("XXX" + str(ac_lon) + " | " + str(ac_lat) + " | " + str(ac_alt))
 
         for agent_id in self.agents.keys():
             if (agent_id[0] == "A"):
                 # 무장 피격 로직
                 for mu_id, target_id_dmg_dict in mu_id_target_id_dmg.items():
                     for target_id, dmg in target_id_dmg_dict.items():
-                        if (agent_id == ac_id_name[target_id]):
+                        if (agent_id == self.ac_id_name[target_id]):
                             self.agents[agent_id].bloods -= dmg
                 
                 if (self.agents[agent_id].bloods < 0):
