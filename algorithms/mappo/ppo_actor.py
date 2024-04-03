@@ -68,6 +68,33 @@ class PPOActor(nn.Module):
         self.to(device)
 
     def forward(self, obs, rnn_states, masks, deterministic=False):
+        
+        """네트워크를 통해 주어진 관찰로부터 행동을 생성한다.
+
+        이 메소드는 네트워크의 순전파 과정을 구현한다. 관찰(obs), 순환 네트워크 상태(rnn_states),
+        마스크(masks)를 입력으로 받아, 결정한 행동, 행동의 로그 확률, 그리고 순환 네트워크 상태를 반환한다.
+        순환 정책을 사용하는 경우, rnn_states와 masks가 순환 네트워크의 상태 및 시퀀스 간의 연속성을 유지하는데 사용된다.
+
+        매개변수:
+            obs (Tensor): 네트워크에 입력되는 관찰 값. 환경으로부터의 관찰 데이터.
+            rnn_states (Tensor): 순환 신경망(RNN)의 현재 상태. 순환 정책을 사용하지 않는 경우 무시될 수 있음.
+            masks (Tensor): 시퀀스의 요소 간의 연속성을 나타내는 마스크. 순환 정책을 사용하는 경우 필요.
+            deterministic (bool, optional): True일 경우 결정적인 행동을 선택, False일 경우 확률적인 행동을 선택. 기본값은 False.
+
+        반환:
+            tuple: 
+            - actions (Tensor): 결정된 행동.
+            - action_log_probs (Tensor): 행동의 로그 확률.
+            - rnn_states (Tensor): 업데이트된 순환 신경망의 상태.
+
+        예시:
+            >>> obs = torch.randn(1, obs_space.shape[0])
+            >>> rnn_states = torch.zeros(1, self.recurrent_hidden_size)
+            >>> masks = torch.ones(1, 1)
+            >>> actions, log_probs, new_rnn_states = actor.forward(obs, rnn_states, masks)
+            이 예시는 주어진 관찰(obs), 초기 RNN 상태(rnn_states), 마스크(masks)로부터 
+            행동과 로그 확률, 업데이트된 RNN 상태를 반환하는 과정을 보여준다.
+        """
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         masks = check(masks).to(**self.tpdv)
