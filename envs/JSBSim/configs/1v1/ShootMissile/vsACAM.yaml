@@ -14,7 +14,7 @@ acceleration_limit_z: 10.0
 
 rule_aircraft_configs: {
   R0001: { # Rule
-    team: Red,
+    color: Red,
     model: f16,
     init_state: {
       ic_long_gc_deg: 124.00,  #126.93,  #127.02000,
@@ -30,7 +30,7 @@ rule_aircraft_configs: {
 # aircraft config
 ai_aircraft_configs: {
   A0100: { # AI
-    team: Blue,
+    color: Blue,
     model: f16,
     init_state: {
       ic_h_sl_ft: 23000,
