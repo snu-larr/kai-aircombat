@@ -10,7 +10,7 @@ from ..utils.utils import check, get_gard_norm
 class PPOTrainer():
     def __init__(self, args, device=torch.device("cpu")):
 
-        """PPOTrainer 클래스의 인스턴스를 초기화한다.
+        """MAPPOTrainer 클래스의 인스턴스를 초기화한다.
 
         이 생성자는 PPO 알고리즘을 사용한 훈련을 위한 다양한 설정을 초기화한다. 이에는 PPO의 핵심 매개변수, 
         순환 신경망 정책 사용 여부, 그리고 훈련 중 사용될 장치 설정이 포함된다.

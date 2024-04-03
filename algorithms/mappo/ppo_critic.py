@@ -9,7 +9,7 @@ from ..utils.utils import check
 class PPOCritic(nn.Module):
     def __init__(self, args, obs_space, device=torch.device("cpu")):
         
-        """PPO 크리틱 네트워크를 초기화한다.
+        """MAPPO 크리틱 네트워크를 초기화한다.
 
         이 생성자는 PPO 크리틱 네트워크의 구성을 정의한다. 네트워크는 특징 추출 모듈, 
         선택적 순환 신경망(RNN) 모듈, 그리고 가치(value) 출력 모듈로 구성된다. 이 구조는 
