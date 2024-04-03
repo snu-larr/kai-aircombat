@@ -136,6 +136,7 @@ class UnControlAircraftSimulator(BaseSimulator):
         self.ac_id_state, self.mu_id_state = {}, {}
         self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
         self.mu_id_state_detected_munition_by_ai = {}
+        self.ac_id_state_detected_by_ai = {}
         self.mu_id_target_id_dmg = {}
 
         # initialize simulator
@@ -192,109 +193,43 @@ class UnControlAircraftSimulator(BaseSimulator):
         
         return ret
     
-    def parsing_data(self):
-        self.mu_id_target_id_dmg = {}
-        packet_datas = self.recv_data.split("/")
-        
-        for packet_data in packet_datas:
-            header, id, data = packet_data.split("|", 2)
-            cnt = int(data.split("<")[0])
-            data = re.search(r'\<(.*?)\>', data).group(1)
+    def set_ac_state(self, data, id):
+        self.ac_id_state[id] = data
 
-            if (id == "7011"): # 항공기 설정
-                ac_id, ac_name, iff = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.ac_id_name[ac_id] = ac_name
-                self.ac_name_id[ac_name] = ac_id
-
-            if (id == "7015"): # 전자장비 설정
-                ed_id, ed_name, iff, upid = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.ed_id_name[ed_id] = ed_name
-                self.ed_name_id[ed_name] = ed_id
-                self.ed_id_upid[ed_id] = upid
-
-            if (id == "7016"): # 무장 설정
-                mu_id, mu_name, iff, upid = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.mu_id_name[mu_id] = mu_name
-                self.mu_name_id[mu_name] = mu_id
-                self.mu_id_upid[mu_id] = upid 
-
-            if (id == "7101"): # 항공기 기동
-                id, lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = [float(x) if x.replace('.', '', 1).isdigit() else x for x in data.split("|")]
-                self.ac_id_state[id] = [float(lon), float(lat), float(alt), float(r), float(p), float(y), float(vn), float(ve), float(vd), float(vbx), float(vby), float(vbz), float(vc), float(an), float(ae), float(ad)]
-
-            if (id == "7102"): # 미사일 기동
-                mu_id, lon, lat, alt, r, p, y, v = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.mu_id_state[mu_id] = [lon, lat, alt, r, p, y, v] 
-            
-            if (id == "7201"): # 레이더 탐지
-                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.rad_id_state[ed_id] = target_id
-
-            if (id == "7202"): # RWR 
-                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.rwr_id_state[ed_id] = target_id
-
-            if (id == "7203"): # MWS
-                ed_id, target_id = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.mws_id_state[ed_id] = target_id
-
-            if (id == "7401"): # 미사일 피격
-                mu_id, target_id, dmg = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.mu_id_target_id_dmg[mu_id] = {**self.mu_id_target_id_dmg, **{target_id: dmg}}
-
-    def _update_properties(self):
-        ################################
-        ownship_id = [id for name, id in self.ac_name_id.items() if name == self.uid][0]
-        
-        for ed_id, target_id in {**self.rad_id_state, **self.rwr_id_state}.items():
-            if (target_id == ownship_id and self.ac_id_name[self.ed_id_upid[ed_id]][0] == "A"):
-
-                lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[ownship_id]
-
-                self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
-                self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)
-                self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
-                self._geodetic[:] = [lon, lat, alt]
-                self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
-
-                self.property_dict[Catalog.attitude_roll_rad.name_jsbsim] = float(r)
-                self.property_dict[Catalog.attitude_pitch_rad.name_jsbsim] = float(p)
-                self.property_dict[Catalog.attitude_heading_true_rad.name_jsbsim] = float(y)
-                self._posture[:] = [r, p, y]
-
-                self.property_dict[Catalog.velocities_v_north_mps.name_jsbsim] = float(vn)
-                self.property_dict[Catalog.velocities_v_east_mps.name_jsbsim] = float(ve)
-                self.property_dict[Catalog.velocities_v_down_mps.name_jsbsim] = float(vd)
-                self._velocity[:] = [vn, ve, vd]
-
-                self.property_dict[Catalog.velocities_u_mps.name_jsbsim] = float(vbx)
-                self.property_dict[Catalog.velocities_v_mps.name_jsbsim] = float(vby)
-                self.property_dict[Catalog.velocities_w_mps.name_jsbsim] = float(vbz)
-                self.property_dict[Catalog.velocities_vc_mps.name_jsbsim] = float(vc)
-
-                self.property_dict[Catalog.accelerations_n_pilot_x_norm.name_jsbsim] = float(an)
-                self.property_dict[Catalog.accelerations_n_pilot_y_norm.name_jsbsim] = float(ae)
-                self.property_dict[Catalog.accelerations_n_pilot_z_norm.name_jsbsim] = float(ad)
-                self._accelerations[:] = [an, ae, ad]
-        
-        ################################
-        for ed_id, target_id in self.mws_id_state.items():
-            # AI 가 가지고 있는 MWS 로 무장 정보를 얻게 되면 해당 값을 공유
-            if (self.ac_id_name[self.ed_id_upid[ed_id]][0] == "A"):
-                lon, lat, alt, r, p, y, v = self.mu_id_state[target_id]
-                self.mu_id_state_detected_munition_by_ai[target_id] = [lon, lat, alt, r, p, y, v]
-            
-        ################################
-        # 피격 판정 중 자신이 맞았다면 반영
-        for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():
-            for tgt_id, dmg in tgt_id_dmg_dict.items():
-                if (tgt_id == ownship_id):
-                    self.bloods -= dmg    
-        
-        if self.bloods <= 0:
-            self.shotdown()
+    def _update_properties(self, agent_id = None):
         ################################
 
+        if (agent_id == None):
+            raise Exception("NO AGNET ID")
+
+        lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[agent_id]
+
+        self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
+        self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)
+        self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
+        self._geodetic[:] = [lon, lat, alt]
+        self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
+
+        self.property_dict[Catalog.attitude_roll_rad.name_jsbsim] = float(r)
+        self.property_dict[Catalog.attitude_pitch_rad.name_jsbsim] = float(p)
+        self.property_dict[Catalog.attitude_heading_true_rad.name_jsbsim] = float(y)
+        self._posture[:] = [r, p, y]
+
+        self.property_dict[Catalog.velocities_v_north_mps.name_jsbsim] = float(vn)
+        self.property_dict[Catalog.velocities_v_east_mps.name_jsbsim] = float(ve)
+        self.property_dict[Catalog.velocities_v_down_mps.name_jsbsim] = float(vd)
+        self._velocity[:] = [vn, ve, vd]
+
+        self.property_dict[Catalog.velocities_u_mps.name_jsbsim] = float(vbx)
+        self.property_dict[Catalog.velocities_v_mps.name_jsbsim] = float(vby)
+        self.property_dict[Catalog.velocities_w_mps.name_jsbsim] = float(vbz)
+        self.property_dict[Catalog.velocities_vc_mps.name_jsbsim] = float(vc)
+
+        self.property_dict[Catalog.accelerations_n_pilot_x_norm.name_jsbsim] = float(an)
+        self.property_dict[Catalog.accelerations_n_pilot_y_norm.name_jsbsim] = float(ae)
+        self.property_dict[Catalog.accelerations_n_pilot_z_norm.name_jsbsim] = float(ad)
+        self._accelerations[:] = [an, ae, ad]
+        
 
 class AircraftSimulator(BaseSimulator):
     """A class which wraps an instance of JSBSim and manages communication with it.
@@ -446,6 +381,9 @@ class AircraftSimulator(BaseSimulator):
             self.jsbsim_exec = None
         self.partners = []
         self.enemies = []
+
+    def set_ac_state(self, data, id):
+        pass
 
     def _update_properties(self):
         # update position
