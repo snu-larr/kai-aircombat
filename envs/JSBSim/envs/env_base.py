@@ -297,8 +297,13 @@ class BaseEnv(gym.Env):
 
         NOTE: This functon should not be used during decentralised execution.
         """
+<<<<<<< Updated upstream
         state = np.hstack([self.task.get_obs(self, agent_id) for agent_id in self.agents.keys()])
         return dict([(agent_id, state.copy()) for agent_id in self.agents.keys() if agent_id[0] == "A"])
+=======
+        state = np.hstack([self.task.get_obs(self, agent_name) for agent_name in self.agents.keys()])
+        return dict([(agent_name, state.copy()) for agent_name, agent in self.agents.items() if agent.color == "Blue"])
+>>>>>>> Stashed changes
 
     def close(self):
         """Cleans up this environment's objects
