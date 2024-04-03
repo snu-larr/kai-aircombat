@@ -10,7 +10,7 @@ from ..utils.utils import check
 class PPOActor(nn.Module):
     def __init__(self, args, obs_space, act_space, device=torch.device("cpu")):
 
-        """PPO 알고리즘용 액터 네트워크를 초기화한다.
+        """MAPPO 알고리즘용 액터 네트워크를 초기화한다.
 
         이 생성자는 PPO 액터 네트워크의 구성을 정의한다. 이 네트워크는 특징 추출, 순환 신경망(RNN), 
         행동 결정의 세 가지 주요 모듈로 구성된다. 각 모듈은 환경으로부터의 관찰을 입력으로 받아

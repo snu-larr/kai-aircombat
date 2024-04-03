@@ -6,7 +6,7 @@ from .ppo_critic import PPOCritic
 class PPOPolicy:
     def __init__(self, args, obs_space, cent_obs_space, act_space, device=torch.device("cpu")):
 
-        """PPOPolicy 클래스의 인스턴스를 초기화한다.
+        """MAPPOPolicy 클래스의 인스턴스를 초기화한다.
 
         이 생성자는 PPO 알고리즘을 구현하는데 필요한 구성 요소를 초기화한다. 액터(행동 결정)와 
         크리틱(가치 평가) 네트워크를 설정하고, 이를 학습시키기 위한 Adam 옵티마이저를 구성한다. 
