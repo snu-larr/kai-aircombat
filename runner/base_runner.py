@@ -8,7 +8,14 @@ from algorithms.utils.buffer import ReplayBuffer
 
 from torch.utils.tensorboard import SummaryWriter
 
+
 def _t2n(x):
+    """
+        description : 이 함수는 torch 에서 numpy 로 변환하는 함수
+        Args `torch` : 입력
+        Return `numpy` : 출력
+    
+    """
     return x.detach().cpu().numpy()
 
 
