@@ -39,7 +39,7 @@ class MultipleCombatEnv(BaseEnv):
         self.reset_simulators()
 
         # ARES 와 소켓 통신
-        self.socket_send_recv()
+        self.socket_send_recv(reset = True)
 
         self.task.reset(self)
         obs = self.get_obs()
@@ -76,15 +76,15 @@ class MultipleCombatEnv(BaseEnv):
         # apply actions
         action = self._unpack(action)
 
-        for agent_id in self.agents.keys():
-            if (agent_id[0] == "A"): # ONLY FOR AI
-                a_action = self.task.normalize_action(self, agent_id, action[agent_id])
-                self.agents[agent_id].set_property_values(self.task.action_var, a_action)
+        for agent_name, agent in self.agents.items():
+            if (agent.color == "Blue"): # ONLY FOR AI
+                a_action = self.task.normalize_action(self, agent_name, action[agent_name])
+                self.agents[agent_name].set_property_values(self.task.action_var, a_action)
 
         # run simulation
         for _ in range(self.agent_interaction_steps):
-            for agent_id, sim in self._jsbsims.items():
-                if (agent_id[0] == "A"): # ONLY FOR AI
+            for agent_name, sim in self._jsbsims.items():
+                if (sim.color == "Blue"): # ONLY FOR AI
                     sim.run()
 
             for sim in self._tempsims.values():
@@ -98,10 +98,10 @@ class MultipleCombatEnv(BaseEnv):
         share_obs = self.get_state()
         
         rewards = {}
-        for agent_id in self.agents.keys():
-            if (agent_id[0] == "A"): # ONLY FOR AI
-                reward, info = self.task.get_reward(self, agent_id, info)
-                rewards[agent_id] = [reward]
+        for agent_name, agent in self.agents.items():
+            if (agent.color == "Blue"): # ONLY FOR AI
+                reward, info = self.task.get_reward(self, agent_name, info)
+                rewards[agent_name] = [reward]
         ego_reward = np.mean([rewards[ego_id] for ego_id in self.ego_ids])
         # enm_reward = np.mean([rewards[enm_id] for enm_id in self.enm_ids])
         
@@ -111,10 +111,10 @@ class MultipleCombatEnv(BaseEnv):
         #     rewards[enm_id] = [enm_reward]
 
         dones = {}
-        for agent_id in self.agents.keys():
-            if (agent_id[0] == "A"):
-                done, info = self.task.get_termination(self, agent_id, info)
-                dones[agent_id] = [done]
+        for agent_name, agent in self.agents.items():
+            if (agent.color == "Blue"):
+                done, info = self.task.get_termination(self, agent_name, info)
+                dones[agent_name] = [done]
                 # dones[agent_id] = [False]
 
         return self._pack(obs), self._pack(share_obs), self._pack(rewards), self._pack(dones), info
