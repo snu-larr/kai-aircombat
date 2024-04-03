@@ -9,6 +9,41 @@ from ..utils.utils import check
 
 class PPOActor(nn.Module):
     def __init__(self, args, obs_space, act_space, device=torch.device("cpu")):
+
+        """PPO 알고리즘용 액터 네트워크를 초기화한다.
+
+        이 생성자는 PPO 액터 네트워크의 구성을 정의한다. 이 네트워크는 특징 추출, 순환 신경망(RNN), 
+        행동 결정의 세 가지 주요 모듈로 구성된다. 각 모듈은 환경으로부터의 관찰을 입력으로 받아
+        액션을 결정하는데 필요한 처리를 수행한다.
+
+        매개변수:
+            args (Namespace): 알고리즘 구성 및 네트워크 설정을 포함하는 객체.
+            - gain (float): 네트워크의 가중치 초기화에 사용되는 이득(gain) 값.
+            - hidden_size (int): 특징 추출 모듈의 은닉층 크기.
+            - act_hidden_size (int): 행동 결정 모듈의 은닉층 크기.
+            - activation_id (int): 사용할 활성화 함수의 ID.
+            - use_feature_normalization (bool): 특징 정규화 사용 여부.
+            - use_recurrent_policy (bool): 순환 정책 사용 여부.
+            - recurrent_hidden_size (int): 순환 모듈의 은닉 상태 크기.
+            - recurrent_hidden_layers (int): 순환 모듈의 은닉층 개수.
+
+            obs_space (Space): 관찰 공간의 정의. 환경으로부터의 입력 형태를 정의한다.
+            act_space (Space): 행동 공간의 정의. 가능한 행동의 형태를 정의한다.
+            device (torch.device, optional): 계산에 사용할 디바이스(cpu 또는 cuda). 기본값은 'cpu'.
+
+        주요 속성:
+            - base (MLPBase): 관찰 데이터로부터 특징을 추출하는 모듈.
+            - rnn (GRULayer): 선택적 순환 신경망 모듈. use_recurrent_policy가 True일 때만 사용.
+            - act (ACTLayer): 최종적으로 행동을 결정하는 모듈.
+
+        예시:
+            >>> args = Namespace(gain=0.01, hidden_size=256, act_hidden_size=128, activation_id=1,
+                                use_feature_normalization=True, use_recurrent_policy=False,
+                                recurrent_hidden_size=64, recurrent_hidden_layers=1)
+            >>> actor = PPOActor(args, obs_space, act_space)
+            이 코드는 주어진 설정으로 PPOActor 네트워크의 인스턴스를 생성한다.
+        """
+        
         super(PPOActor, self).__init__()
         # network config
         self.gain = args.gain
