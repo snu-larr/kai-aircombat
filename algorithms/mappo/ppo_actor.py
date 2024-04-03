@@ -9,6 +9,41 @@ from ..utils.utils import check
 
 class PPOActor(nn.Module):
     def __init__(self, args, obs_space, act_space, device=torch.device("cpu")):
+
+        """PPO 알고리즘용 액터 네트워크를 초기화한다.
+
+        이 생성자는 PPO 액터 네트워크의 구성을 정의한다. 이 네트워크는 특징 추출, 순환 신경망(RNN), 
+        행동 결정의 세 가지 주요 모듈로 구성된다. 각 모듈은 환경으로부터의 관찰을 입력으로 받아
+        액션을 결정하는데 필요한 처리를 수행한다.
+
+        매개변수:
+            args (Namespace): 알고리즘 구성 및 네트워크 설정을 포함하는 객체.
+            - gain (float): 네트워크의 가중치 초기화에 사용되는 이득(gain) 값.
+            - hidden_size (int): 특징 추출 모듈의 은닉층 크기.
+            - act_hidden_size (int): 행동 결정 모듈의 은닉층 크기.
+            - activation_id (int): 사용할 활성화 함수의 ID.
+            - use_feature_normalization (bool): 특징 정규화 사용 여부.
+            - use_recurrent_policy (bool): 순환 정책 사용 여부.
+            - recurrent_hidden_size (int): 순환 모듈의 은닉 상태 크기.
+            - recurrent_hidden_layers (int): 순환 모듈의 은닉층 개수.
+
+            obs_space (Space): 관찰 공간의 정의. 환경으로부터의 입력 형태를 정의한다.
+            act_space (Space): 행동 공간의 정의. 가능한 행동의 형태를 정의한다.
+            device (torch.device, optional): 계산에 사용할 디바이스(cpu 또는 cuda). 기본값은 'cpu'.
+
+        주요 속성:
+            - base (MLPBase): 관찰 데이터로부터 특징을 추출하는 모듈.
+            - rnn (GRULayer): 선택적 순환 신경망 모듈. use_recurrent_policy가 True일 때만 사용.
+            - act (ACTLayer): 최종적으로 행동을 결정하는 모듈.
+
+        예시:
+            >>> args = Namespace(gain=0.01, hidden_size=256, act_hidden_size=128, activation_id=1,
+                                use_feature_normalization=True, use_recurrent_policy=False,
+                                recurrent_hidden_size=64, recurrent_hidden_layers=1)
+            >>> actor = PPOActor(args, obs_space, act_space)
+            이 코드는 주어진 설정으로 PPOActor 네트워크의 인스턴스를 생성한다.
+        """
+        
         super(PPOActor, self).__init__()
         # network config
         self.gain = args.gain
@@ -33,6 +68,33 @@ class PPOActor(nn.Module):
         self.to(device)
 
     def forward(self, obs, rnn_states, masks, deterministic=False):
+        
+        """네트워크를 통해 주어진 관찰로부터 행동을 생성한다.
+
+        이 메소드는 네트워크의 순전파 과정을 구현한다. 관찰(obs), 순환 네트워크 상태(rnn_states),
+        마스크(masks)를 입력으로 받아, 결정한 행동, 행동의 로그 확률, 그리고 순환 네트워크 상태를 반환한다.
+        순환 정책을 사용하는 경우, rnn_states와 masks가 순환 네트워크의 상태 및 시퀀스 간의 연속성을 유지하는데 사용된다.
+
+        매개변수:
+            obs (Tensor): 네트워크에 입력되는 관찰 값. 환경으로부터의 관찰 데이터.
+            rnn_states (Tensor): 순환 신경망(RNN)의 현재 상태. 순환 정책을 사용하지 않는 경우 무시될 수 있음.
+            masks (Tensor): 시퀀스의 요소 간의 연속성을 나타내는 마스크. 순환 정책을 사용하는 경우 필요.
+            deterministic (bool, optional): True일 경우 결정적인 행동을 선택, False일 경우 확률적인 행동을 선택. 기본값은 False.
+
+        반환:
+            tuple: 
+            - actions (Tensor): 결정된 행동.
+            - action_log_probs (Tensor): 행동의 로그 확률.
+            - rnn_states (Tensor): 업데이트된 순환 신경망의 상태.
+
+        예시:
+            >>> obs = torch.randn(1, obs_space.shape[0])
+            >>> rnn_states = torch.zeros(1, self.recurrent_hidden_size)
+            >>> masks = torch.ones(1, 1)
+            >>> actions, log_probs, new_rnn_states = actor.forward(obs, rnn_states, masks)
+            이 예시는 주어진 관찰(obs), 초기 RNN 상태(rnn_states), 마스크(masks)로부터 
+            행동과 로그 확률, 업데이트된 RNN 상태를 반환하는 과정을 보여준다.
+        """
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         masks = check(masks).to(**self.tpdv)
@@ -47,6 +109,34 @@ class PPOActor(nn.Module):
         return actions, action_log_probs, rnn_states
 
     def evaluate_actions(self, obs, rnn_states, action, masks, active_masks=None):
+
+        """주어진 행동의 로그 확률과 분포의 엔트로피를 평가한다.
+
+        이 메소드는 주어진 관찰(obs), 순환 네트워크 상태(rnn_states), 실행된 행동(action), 
+        시퀀스 마스크(masks), 그리고 선택적 활성화 마스크(active_masks)를 기반으로 행동의 
+        로그 확률과 정책의 엔트로피를 계산한다. 이는 보상을 최적화하고 정책의 탐색을 촉진하기 위해 사용된다.
+
+        매개변수:
+            obs (Tensor): 네트워크에 입력되는 관찰 값.
+            rnn_states (Tensor): 순환 신경망(RNN)의 현재 상태.
+            action (Tensor): 평가하려는 행동.
+            masks (Tensor): 시퀀스의 요소 간의 연속성을 나타내는 마스크.
+            active_masks (Tensor, optional): 특정 시점에서 활성화된 행동만을 평가하기 위한 마스크. None일 경우 모든 행동을 평가.
+
+        반환:
+            tuple: 
+            - action_log_probs (Tensor): 실행된 행동의 로그 확률.
+            - dist_entropy (Tensor): 행동 분포의 엔트로피. 정책의 다양성을 나타낸다.
+
+        예시:
+            >>> obs = torch.randn(1, obs_space.shape[0])
+            >>> rnn_states = torch.zeros(1, self.recurrent_hidden_size)
+            >>> action = torch.tensor([[1]])
+            >>> masks = torch.ones(1, 1)
+            >>> action_log_probs, dist_entropy = actor.evaluate_actions(obs, rnn_states, action, masks)
+            이 코드는 주어진 관찰, RNN 상태, 행동, 마스크를 기반으로 행동의 로그 확률과 엔트로피를 반환한다.
+        """
+        
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         action = check(action).to(**self.tpdv)
