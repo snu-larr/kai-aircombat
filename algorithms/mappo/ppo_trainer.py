@@ -10,6 +10,36 @@ from ..utils.utils import check, get_gard_norm
 class PPOTrainer():
     def __init__(self, args, device=torch.device("cpu")):
 
+        """PPOTrainer 클래스의 인스턴스를 초기화한다.
+
+        이 생성자는 PPO 알고리즘을 사용한 훈련을 위한 다양한 설정을 초기화한다. 이에는 PPO의 핵심 매개변수, 
+        순환 신경망 정책 사용 여부, 그리고 훈련 중 사용될 장치 설정이 포함된다.
+
+        매개변수:
+            args (Namespace): 훈련과 관련된 설정을 포함하는 객체. 여기에는 PPO 설정, 순환 신경망 관련 설정,
+                            그리고 기타 학습 매개변수가 포함될 수 있다.
+            device (torch.device, optional): 계산에 사용할 디바이스(cpu 또는 cuda). 기본값은 'cpu'.
+
+        속성:
+            device: 계산에 사용될 장치.
+            tpdv: 텐서의 데이터 타입과 장치를 지정하는 딕셔너리.
+            ppo_epoch: PPO 업데이트를 실행할 에폭 수.
+            clip_param: PPO 클리핑 매개변수의 값.
+            use_clipped_value_loss: 클리핑된 가치 손실을 사용할지 여부.
+            num_mini_batch: 미니 배치의 수.
+            value_loss_coef: 가치 손실 계수.
+            entropy_coef: 엔트로피 계수.
+            use_max_grad_norm: 최대 그래디언트 노름을 사용할지 여부.
+            max_grad_norm: 사용될 최대 그래디언트 노름.
+            use_recurrent_policy: 순환 정책을 사용할지 여부.
+            data_chunk_length: 데이터 청크의 길이(순환 정책 사용 시).
+
+        예시:
+            >>> args = Namespace(ppo_epoch=4, clip_param=0.2, ...)
+            >>> trainer = PPOTrainer(args)
+            이 코드는 주어진 설정으로 PPOTrainer 인스턴스를 초기화한다.
+        """
+
         self.device = device
         self.tpdv = dict(dtype=torch.float32, device=device)
         # ppo config
@@ -26,6 +56,31 @@ class PPOTrainer():
         self.data_chunk_length = args.data_chunk_length
 
     def ppo_update(self, policy: PPOPolicy, sample):
+
+        """PPO 알고리즘을 사용하여 정책을 업데이트한다.
+
+        주어진 샘플 데이터를 바탕으로 정책의 손실을 계산하고, 이를 최적화하여
+        에이전트의 학습을 진행한다. 이 과정은 PPO의 클리핑 기법을 사용하여
+        정책 업데이트의 크기를 제한하고, 학습의 안정성을 높인다.
+
+        매개변수:
+            policy (PPOPolicy): 업데이트할 정책 객체.
+            sample (tuple): 학습 데이터 샘플. 여러 텐서들(obs_batch, actions_batch 등)을 포함한다.
+
+        반환:
+            policy_loss (Tensor): 계산된 정책 손실.
+            value_loss (Tensor): 계산된 가치 손실.
+            policy_entropy_loss (Tensor): 계산된 정책의 엔트로피 손실.
+            ratio (Tensor): 정책 업데이트 비율.
+            actor_grad_norm (float): 액터 네트워크의 그래디언트 노름.
+            critic_grad_norm (float): 크리틱 네트워크의 그래디언트 노름.
+
+        예시:
+            >>> policy = PPOPolicy(args, ...)
+            >>> sample = ...
+            >>> policy_loss, value_loss, policy_entropy_loss, ratio, actor_grad_norm, critic_grad_norm = trainer.ppo_update(policy, sample)
+            이 코드는 주어진 정책과 샘플 데이터를 사용하여 PPO 업데이트를 수행한다.
+        """
 
         obs_batch, share_obs_batch, actions_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, advantages_batch, \
             returns_batch, value_preds_batch, rnn_states_actor_batch, rnn_states_critic_batch = sample
@@ -77,6 +132,29 @@ class PPOTrainer():
         return policy_loss, value_loss, policy_entropy_loss, ratio, actor_grad_norm, critic_grad_norm
 
     def train(self, policy: PPOPolicy, buffer: SharedReplayBuffer):
+
+        """PPOPolicy를 사용하여 주어진 데이터 버퍼로부터 정책을 학습시킨다.
+
+        이 메소드는 여러 에폭 동안 PPO 알고리즘을 사용하여 정책을 업데이트한다. 학습 데이터는
+        SharedReplayBuffer로부터 샘플링되며, 순환 신경망 정책을 사용하는 경우에는 특별한 데이터 생성기를 통해
+        데이터를 준비한다. 학습 과정에서는 가치 손실, 정책 손실, 정책의 엔트로피 손실 등 다양한 메트릭을 계산하고,
+        이를 집계하여 반환한다.
+
+        매개변수:
+            policy (PPOPolicy): 학습시킬 정책 객체.
+            buffer (SharedReplayBuffer): 학습 데이터를 제공하는 버퍼.
+
+        반환:
+            train_info (dict): 학습 과정에서 계산된 메트릭을 담은 딕셔너리. 가치 손실, 정책 손실,
+                            정책의 엔트로피 손실, 액터와 크리틱의 그래디언트 노름, 업데이트 비율(ratio)을 포함한다.
+
+        예시:
+            >>> policy = PPOPolicy(args, ...)
+            >>> buffer = SharedReplayBuffer(...)
+            >>> train_info = trainer.train(policy, buffer)
+            이 코드는 주어진 정책과 버퍼를 사용하여 PPO 알고리즘에 따라 정책을 학습시킨다.
+        """
+        
         train_info = {}
         train_info['value_loss'] = 0
         train_info['policy_loss'] = 0

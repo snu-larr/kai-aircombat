@@ -109,6 +109,34 @@ class PPOActor(nn.Module):
         return actions, action_log_probs, rnn_states
 
     def evaluate_actions(self, obs, rnn_states, action, masks, active_masks=None):
+
+        """주어진 행동의 로그 확률과 분포의 엔트로피를 평가한다.
+
+        이 메소드는 주어진 관찰(obs), 순환 네트워크 상태(rnn_states), 실행된 행동(action), 
+        시퀀스 마스크(masks), 그리고 선택적 활성화 마스크(active_masks)를 기반으로 행동의 
+        로그 확률과 정책의 엔트로피를 계산한다. 이는 보상을 최적화하고 정책의 탐색을 촉진하기 위해 사용된다.
+
+        매개변수:
+            obs (Tensor): 네트워크에 입력되는 관찰 값.
+            rnn_states (Tensor): 순환 신경망(RNN)의 현재 상태.
+            action (Tensor): 평가하려는 행동.
+            masks (Tensor): 시퀀스의 요소 간의 연속성을 나타내는 마스크.
+            active_masks (Tensor, optional): 특정 시점에서 활성화된 행동만을 평가하기 위한 마스크. None일 경우 모든 행동을 평가.
+
+        반환:
+            tuple: 
+            - action_log_probs (Tensor): 실행된 행동의 로그 확률.
+            - dist_entropy (Tensor): 행동 분포의 엔트로피. 정책의 다양성을 나타낸다.
+
+        예시:
+            >>> obs = torch.randn(1, obs_space.shape[0])
+            >>> rnn_states = torch.zeros(1, self.recurrent_hidden_size)
+            >>> action = torch.tensor([[1]])
+            >>> masks = torch.ones(1, 1)
+            >>> action_log_probs, dist_entropy = actor.evaluate_actions(obs, rnn_states, action, masks)
+            이 코드는 주어진 관찰, RNN 상태, 행동, 마스크를 기반으로 행동의 로그 확률과 엔트로피를 반환한다.
+        """
+        
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         action = check(action).to(**self.tpdv)

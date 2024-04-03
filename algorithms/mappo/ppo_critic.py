@@ -8,6 +8,7 @@ from ..utils.utils import check
 
 class PPOCritic(nn.Module):
     def __init__(self, args, obs_space, device=torch.device("cpu")):
+        
         """PPO 크리틱 네트워크를 초기화한다.
 
         이 생성자는 PPO 크리틱 네트워크의 구성을 정의한다. 네트워크는 특징 추출 모듈, 
@@ -63,6 +64,31 @@ class PPOCritic(nn.Module):
         self.to(device)
 
     def forward(self, obs, rnn_states, masks):
+
+        """네트워크를 통해 주어진 관찰로부터 상태의 가치를 추정한다.
+
+        이 메소드는 네트워크의 순전파 과정을 구현한다. 관찰(obs), 순환 네트워크 상태(rnn_states),
+        및 시퀀스 마스크(masks)를 입력으로 받아, 각 상태의 가치와 업데이트된 순환 네트워크 상태를 반환한다.
+        순환 정책을 사용하는 경우, rnn_states와 masks는 순환 네트워크의 상태 및 시퀀스 간의 연속성을 유지하는데 사용된다.
+
+        매개변수:
+            obs (Tensor): 네트워크에 입력되는 관찰 값. 환경으로부터의 관찰 데이터.
+            rnn_states (Tensor): 순환 신경망(RNN)의 현재 상태. 순환 정책을 사용하지 않는 경우 무시될 수 있음.
+            masks (Tensor): 시퀀스의 요소 간의 연속성을 나타내는 마스크. 순환 정책을 사용하는 경우 필요.
+
+        반환:
+            tuple: 
+            - values (Tensor): 추정된 각 상태의 가치.
+            - rnn_states (Tensor): 업데이트된 순환 신경망의 상태.
+
+        예시:
+            >>> obs = torch.randn(1, obs_space.shape[0])
+            >>> rnn_states = torch.zeros(1, self.recurrent_hidden_size)
+            >>> masks = torch.ones(1, 1)
+            >>> values, new_rnn_states = critic.forward(obs, rnn_states, masks)
+            이 예시는 주어진 관찰, 초기 RNN 상태, 마스크를 기반으로 상태의 가치와 업데이트된 RNN 상태를 반환하는 과정을 보여준다.
+        """
+        
         obs = check(obs).to(**self.tpdv)
         rnn_states = check(rnn_states).to(**self.tpdv)
         masks = check(masks).to(**self.tpdv)
