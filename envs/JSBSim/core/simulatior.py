@@ -772,7 +772,6 @@ class UnControlSAMSimulator(BaseSimulator):
         return ret
     
     def parsing_data(self):
-        self.mu_id_target_id_dmg = {}
         packet_datas = self.recv_data.split("/")
         
         for packet_data in packet_datas:
@@ -795,14 +794,3 @@ class UnControlSAMSimulator(BaseSimulator):
         self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
         self._geodetic[:] = [lon, lat, alt]
         self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
-
-        ################################
-        # 피격 판정 중 자신이 맞았다면 반영
-        for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():
-            for tgt_id, dmg in tgt_id_dmg_dict.items():
-                if (tgt_id == ownsam_id):
-                    self.bloods -= dmg    
-        
-        if self.bloods <= 0:
-            self.shotdown()
-        ################################

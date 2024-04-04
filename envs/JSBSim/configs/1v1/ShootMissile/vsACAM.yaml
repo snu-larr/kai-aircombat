@@ -13,7 +13,8 @@ acceleration_limit_y: 10.0
 acceleration_limit_z: 10.0
 
 rule_aircraft_configs: {
-  R0001: { # Rule
+  # ID 는 tacview id 로도 사용되는데, 이때 16진수 값으로 읽힘 --> 즉 숫자 0~9 와 알파벳 a, b, c, d, e, f 까지만 사용됨..
+  B0001: { # Rule
     color: Red,
     model: f16,
     init_state: {

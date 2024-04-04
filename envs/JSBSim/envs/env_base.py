@@ -47,10 +47,12 @@ class BaseEnv(gym.Env):
         self.ac_id_name, self.ac_name_id = {}, {}
         self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
         self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
+        self.sam_id_name = {}
 
         # aircraft/munition id - state
         self.ac_id_state = {}
         self.mu_id_state = {}
+        self.sam_id_state = {}
         
         # 전자장비 id - state
         self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
@@ -151,10 +153,26 @@ class BaseEnv(gym.Env):
         for sim in self._jsbsims.values():
             sim.reload()
         
-        # state reset
-        self.ac_id_name = {}
+        # id - name (초기 setting)
+        self.ac_id_name, self.ac_name_id = {}, {}
+        self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
+        self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
+        self.sam_id_name = {}
+
+        # aircraft/munition id - state
+        self.ac_id_state = {}
         self.mu_id_state = {}
-        self.ac_id_state_detected_by_ai = {}
+        self.sam_id_state = {}
+        
+        # 전자장비 id - state
+        self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
+
+        # damage page
+        self.mu_id_target_id_dmg = {}
+
+        # detected data
+        self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
+        ###
 
         # ARES 와 소켓 통신
         self.socket_send_recv(reset = True)
@@ -222,6 +240,8 @@ class BaseEnv(gym.Env):
         return self._pack(obs), self._pack(rewards), self._pack(dones), info
 
     def parsing_data(self, data):
+        #################
+        # 입력에 "/" 구분자가 있는 경우
         packet_datas = data.split("/")
         
         for packet_data in packet_datas:
@@ -229,10 +249,25 @@ class BaseEnv(gym.Env):
             cnt = int(data.split("<")[0])
             data = re.search(r'\<(.*?)\>', data).group(1)
 
+        ################
+        # 입력에 "/" 구분자가 없는 경우
+        # packet_datas = data.split("ORD")[1:]
+        
+        # for packet_data in packet_datas:
+        #     id, data = packet_data.split("|", 2)[1:]
+        #     cnt = int(data.split("<")[0])
+        #     data = re.search(r'\<(.*?)\>', data).group(1)
+        #################
+            
             if (id == "7011"): # 항공기 설정
                 ac_id, ac_name, iff = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.ac_id_name[ac_id] = ac_name
                 self.ac_name_id[ac_name] = ac_id
+
+            if (id == "7013"): # 지대공 위협 설정
+                sam_id, sam_name, iff, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                self.sam_id_name[sam_id] = sam_name
+                self.sam_id_state[sam_id] = [lon, lat, alt]
 
             if (id == "7015"): # 전자장비 설정
                 ed_id, ed_name, iff, upid = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
@@ -324,6 +359,9 @@ class BaseEnv(gym.Env):
                     agent_id = self.ac_name_id[agent_name]
                     if (tgt_id == agent_id):
                         agent.bloods -= dmg    
+                
+                # TODO : SAM 피격 판정 로직이 추가되어야 함
+
         
         for agent_name, agent in self.agents.items():
             if (agent.bloods <= 0):
@@ -340,7 +378,7 @@ class BaseEnv(gym.Env):
             target_idx_ac_id[idx] = ac_id
 
         for agent_name, agent in self.agents.items():
-            if (agent.color != "Red"):
+            if (agent.color == "Blue"):
                 lon, lat, alt = self.agents[agent_name].get_geodetic()
                 vx, vy, vz = self.agents[agent_name].get_velocity()
                 x, y, z = LLA2ECEF(lon, lat, alt)
@@ -389,6 +427,7 @@ class BaseEnv(gym.Env):
         self.socket.sendall(msg)
         ###################
         # 서버로부터 action 값을 전달한 t+1초의 무장 정보와 규칙기반의 항공기의 상태 응답을 기다림
+
         data = self.socket.recv(self.buffer_size)
         data = data.decode()
 
@@ -398,6 +437,8 @@ class BaseEnv(gym.Env):
         # 무장 정보
         self.parsing_data(data)
         
+        # TODO : SAM 정보 update properties 가 필요함
+
         for agent_name, agent in self.agents.items():
             if (agent.color == "Red"):
                 agent_id = [id for name, id in self.ac_name_id.items() if name == agent_name][0]
