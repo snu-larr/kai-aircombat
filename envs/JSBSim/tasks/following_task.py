@@ -3,7 +3,7 @@ from gym import spaces
 from .task_base import BaseTask
 from ..core.catalog import Catalog as c
 from ..reward_functions import AltitudeReward, HeadingSAMReward
-from ..termination_conditions import ExtremeState, LowAltitude, Overload, Timeout, UnreachHeading
+from ..termination_conditions import ExtremeState, LowAltitude, Overload, Timeout, UnreachHeading, UnreachHeadingSAM
 from ..utils.utils import LLA2NEU
 import math
 
@@ -19,7 +19,7 @@ class SAMTask(BaseTask):
             AltitudeReward(self.config),
         ]
         self.termination_conditions = [
-            # UnreachHeading(self.config),
+            UnreachHeadingSAM(self.config),
             ExtremeState(self.config),
             Overload(self.config),
             LowAltitude(self.config),
