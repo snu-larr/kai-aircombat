@@ -64,6 +64,7 @@ class BaseEnv(gym.Env):
         self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
         ###
 
+        self._jsbsims = {}     # type: Dict[str, AircraftSimulator]
         self.load()
 
     @property
@@ -92,14 +93,85 @@ class BaseEnv(gym.Env):
 
     def load(self):
         self.load_task()
-        self.load_simulator()
+        # self.load_simulator()
         self.seed()
 
     def load_task(self):
         self.task = BaseTask(self.config)
 
+    def load_simulator_ACAM(self):
+        self._jsbsims = {}
+        for ac_id, state in self.ac_id_state.items():
+            lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = state
+            name = self.ac_id_name[ac_id]
+            iff = self.ac_id_iff[ac_id]
+
+            mu_id = [id for id, up_id in self.mu_id_upid.items() if up_id == ac_id]
+
+            if (iff == 0):
+                self._jsbsims[name] = AircraftSimulator(
+                    uid = name,
+                    color = "Blue",
+                    model = "f16",
+                    init_state = {
+                        # "ic_h_sl_ft": alt,
+                        # "ic_lat_geod_deg": lat,
+                        # "ic_long_gc_deg": lon,
+                        # "ic_psi_true_deg" : y,
+                        # "ic_u_fps": vbx,
+
+                        "ic_h_sl_ft": 23000,
+                        "ic_lat_geod_deg": 37.00,
+                        "ic_long_gc_deg": 124.10,
+                        "ic_psi_true_deg" : 0.0,
+                        "ic_u_fps": 800.0,
+                    },
+                    origin = [124.00, 37.00, 0.0],
+                    sim_freq = self.sim_freq,
+                    num_missiles = len(mu_id)
+                )
+
+        for ac_id, state in self.ac_id_state.items():
+            lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = state
+            name = self.ac_id_name[ac_id]
+            iff = self.ac_id_iff[ac_id]
+
+            mu_id = [id for id, up_id in self.mu_id_upid.items() if up_id == ac_id]
+            if (iff == 1):
+                self._jsbsims[name] = UnControlAircraftSimulator(
+                    uid = name,
+                    color = "Red",
+                    model = "f16",
+                    init_state = {
+                        "ic_h_sl_ft": alt,
+                        "ic_lat_geod_deg": lat,
+                        "ic_long_gc_deg": lon,
+                        "ic_psi_true_deg" : y,
+                        "ic_u_fps": vbx,
+                    },
+                    origin = [124.00, 37.00, 0.0],
+                    sim_freq = self.sim_freq,
+                    num_missiles = len(mu_id)
+                )
+
+        # Different teams have different uid[0]
+        _default_team_uid = list(self._jsbsims.keys())[0][0]
+        self.ego_ids = [uid for uid in self._jsbsims.keys() if uid[0] == _default_team_uid]
+        self.enm_ids = [uid for uid in self._jsbsims.keys() if uid[0] != _default_team_uid]
+
+        # Link jsbsims
+        for key, sim in self._jsbsims.items():
+            for k, s in self._jsbsims.items():
+                if k == key:
+                    pass
+                elif s.color == sim.color:
+                    sim.partners.append(s)
+                else:
+                    sim.enemies.append(s)
+
+        self._tempsims = {}    # type: Dict[str, BaseSimulator]
+
     def load_simulator(self):
-        self._jsbsims = {}     # type: Dict[str, AircraftSimulator]
         for uid, config in self.config.ai_aircraft_configs.items():
             # AI
             self._jsbsims[uid] = AircraftSimulator(
@@ -148,13 +220,8 @@ class BaseEnv(gym.Env):
         Returns:
             obs (np.ndarray): initial observation
         """
-        # reset sim
-        self.current_step = 0
-        for sim in self._jsbsims.values():
-            sim.reload()
-        
         # id - name (초기 setting)
-        self.ac_id_name, self.ac_name_id = {}, {}
+        self.ac_id_name, self.ac_name_id, self.ac_id_iff = {}, {}, {}
         self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
         self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
         self.sam_id_name = {}
@@ -174,8 +241,13 @@ class BaseEnv(gym.Env):
         self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
         ###
 
-        # ARES 와 소켓 통신
-        self.socket_send_recv(reset = True)
+        # TODO : reset trigger 전달 및 초기값 수신 이후, 객체 생성 및 reload 진행
+        self.socket_send_recv(reset_flag = True)
+
+        # reset sim
+        self.current_step = 0
+        for sim in self._jsbsims.values():
+            sim.reload()
         
         self._tempsims.clear()
         # reset task
@@ -239,7 +311,7 @@ class BaseEnv(gym.Env):
 
         return self._pack(obs), self._pack(rewards), self._pack(dones), info
 
-    def parsing_data(self, data):
+    def parsing_data(self, data, reset_flag = False):
         #################
         # 입력에 "/" 구분자가 있는 경우
         packet_datas = data.split("/")
@@ -258,11 +330,12 @@ class BaseEnv(gym.Env):
         #     cnt = int(data.split("<")[0])
         #     data = re.search(r'\<(.*?)\>', data).group(1)
         #################
-            
+        
             if (id == "7011"): # 항공기 설정
                 ac_id, ac_name, iff = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.ac_id_name[ac_id] = ac_name
                 self.ac_name_id[ac_name] = ac_id
+                self.ac_id_iff[ac_id] = iff
 
             if (id == "7013"): # 지대공 위협 설정
                 sam_id, sam_name, iff, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
@@ -304,6 +377,23 @@ class BaseEnv(gym.Env):
             if (id == "7401"): # 미사일 피격
                 mu_id, target_id, dmg = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_target_id_dmg[mu_id] = {**self.mu_id_target_id_dmg, **{target_id: dmg}}
+
+        if (reset_flag):
+            if (len(self.agents) == 0):
+                self.load_simulator_ACAM()
+            else:
+                for agent_name, agent in self.agents.items():
+                    agent_id = self.ac_name_id[agent_name]
+                    lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[agent_id]
+                    new_state = {
+                        "ic_h_sl_ft": alt,
+                        "ic_lat_geod_deg": lat,
+                        "ic_long_gc_deg": lon,
+                        "ic_psi_true_deg": y,
+                        "ic_u_fps": vbx,
+                    }
+                    agent.reload(new_state = new_state)
+
 
         ################################
         for ed_id, target_id in self.mws_id_state.items():
@@ -368,60 +458,61 @@ class BaseEnv(gym.Env):
                 agent.shotdown()
         ################################
 
-    def socket_send_recv(self, action = None, reset = False):
+    def socket_send_recv(self, action = None, reset_flag = False):
         # 데이터 송신
         msg = ""
 
-        # target idx 와 aircraft id 의 matching
-        target_idx_ac_id = {}
-        for idx, ac_id in enumerate(self.ac_id_name.keys()):
-            target_idx_ac_id[idx] = ac_id
+        if (reset_flag):
+            msg = "ORD|9400"
+        else:
+            # target idx 와 aircraft id 의 matching
+            target_idx_ac_id = {}
+            for idx, ac_id in enumerate(self.ac_id_name.keys()):
+                target_idx_ac_id[idx] = ac_id
 
-        for agent_name, agent in self.agents.items():
-            if (agent.color == "Blue"):
-                lon, lat, alt = self.agents[agent_name].get_geodetic()
-                vx, vy, vz = self.agents[agent_name].get_velocity()
-                x, y, z = LLA2ECEF(lon, lat, alt)
+            for agent_name, agent in self.agents.items():
+                if (agent.color == "Blue"):
+                    lon, lat, alt = self.agents[agent_name].get_geodetic()
+                    vx, vy, vz = self.agents[agent_name].get_velocity()
+                    x, y, z = LLA2ECEF(lon, lat, alt)
 
-                ac_msg = "ORD|9100|6<" + agent_name + "|" + str(round(x, 6)) + "|" + str(round(y, 6)) + "|" + str(round(z, 6)) + "|" + \
-                    str(round(math.sqrt(vx**2 + vy**2 + vz**2), 6)) + "|9>"
+                    # print(agent_name, lon, lat, alt)
 
-                # missile check
-                if (action != None):
-                    # target idx 는 ARES 에서 주는 항공기 정보를 바탕으로 idx 부여
-                    gun_trigger, aim9_trigger, aim120_trigger, chaff_flare_trigger, jammer_trigger, radar_trigger, target_idx = action[agent_name][4:]
-                    
-                    # radar locking 이 안된경우에는 target idx 값이 무의미하도록 변경 필요, ex) [target_idx : 3 / target_id : R0001]
-                    detected_ac_list = [target_id for rad_id, target_id in self.rad_id_state.items() if agent_name == self.ac_id_name[self.ed_id_upid[rad_id]]]
-                    if (target_idx_ac_id[target_idx] in detected_ac_list):
-                        target_id = self.ac_id_name[target_idx_ac_id[target_idx]]
+                    ac_msg = "ORD|9100|6<" + agent_name + "|" + str(round(x, 6)) + "|" + str(round(y, 6)) + "|" + str(round(z, 6)) + "|" + \
+                        str(round(math.sqrt(vx**2 + vy**2 + vz**2), 6)) + "|9>"
+
+                    # missile check
+                    if (action != None):
+                        # target idx 는 ARES 에서 주는 항공기 정보를 바탕으로 idx 부여
+                        gun_trigger, aim9_trigger, aim120_trigger, chaff_flare_trigger, jammer_trigger, radar_trigger, target_idx = action[agent_name][4:]
+                        
+                        # radar locking 이 안된경우에는 target idx 값이 무의미하도록 변경 필요, ex) [target_idx : 3 / target_id : R0001]
+                        detected_ac_list = [target_id for rad_id, target_id in self.rad_id_state.items() if agent_name == self.ac_id_name[self.ed_id_upid[rad_id]]]
+                        if (target_idx_ac_id[target_idx] in detected_ac_list):
+                            target_id = self.ac_id_name[target_idx_ac_id[target_idx]]
+                        else:
+                            target_id = "X"
+
+                        # RWR 이 울린 경우에만 Chaff/Flare 를 발사하도록 변경
+                        detected_rwr_list = [target_id for rwr_id, target_id in self.rwr_id_state.items() if agent_name == self.ac_id_name[self.ed_id_upid[rwr_id]]]
+                        if (len(detected_rwr_list) == 0 and chaff_flare_trigger > 0):
+                            chaff_flare_trigger = 0
+
                     else:
+                        target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
+                        chaff_flare_trigger, jammer_trigger, radar_trigger = 0, 0, 0
                         target_id = "X"
 
-                    # RWR 이 울린 경우에만 Chaff/Flare 를 발사하도록 변경
-                    detected_rwr_list = [target_id for rwr_id, target_id in self.rwr_id_state.items() if agent_name == self.ac_id_name[self.ed_id_upid[rwr_id]]]
-                    if (len(detected_rwr_list) == 0 and chaff_flare_trigger > 0):
-                        chaff_flare_trigger = 0
+                    gun_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|0>" if gun_trigger or target_id != "X" else ""
+                    aim9_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|1>" if aim9_trigger or target_id != "X" else ""
+                    aim120_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|2>" if aim120_trigger or target_id != "X" else ""
+                    chaff_flare_msg = "ORD|9300|1<" + agent_name + ">" if chaff_flare_trigger else ""
+                    msg += ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_flare_msg
 
-                else:
-                    target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
-                    chaff_flare_trigger, jammer_trigger, radar_trigger = 0, 0, 0
-                    target_id = "X"
-
-                gun_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|0>" if gun_trigger else ""
-                aim9_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|1>" if aim9_trigger or target_id != "X" else ""
-                aim120_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|2>" if aim120_trigger or target_id != "X" else ""
-                chaff_flare_msg = "ORD|9300|1<" + agent_name + ">" if chaff_flare_trigger else ""
-                msg += ac_msg + gun_msg + aim9_msg + aim120_msg + chaff_flare_msg
-
-        reset_msg = "ORD|9400" if (reset) else ""
-        
         ##### reset 시 callstack 확인
         # if (reset):
         #     for line in traceback.format_stack():
         #         print(line.strip())
-
-        msg += reset_msg
 
         msg = msg.encode()
         self.socket.sendall(msg)
@@ -431,11 +522,11 @@ class BaseEnv(gym.Env):
         data = self.socket.recv(self.buffer_size)
         data = data.decode()
 
+        # 무장 정보
+        self.parsing_data(data, reset_flag = reset_flag)
+        
         temp_agent_id = [id for id in self.agents.keys()][0]
         std_lon, std_lat, std_alt = self.agents[temp_agent_id].lon0, self.agents[temp_agent_id].lat0, self.agents[temp_agent_id].alt0
-        
-        # 무장 정보
-        self.parsing_data(data)
         
         # TODO : SAM 정보 update properties 가 필요함
 

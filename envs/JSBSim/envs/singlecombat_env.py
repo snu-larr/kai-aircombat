@@ -11,7 +11,7 @@ class SingleCombatEnv(BaseEnv):
     def __init__(self, config_name: str, port = 54000):
         super().__init__(config_name, port = port)
         # Env-Specific initialization here!
-        assert len(self.agents.keys()) == 2, f"{self.__class__.__name__} only supports 1v1 scenarios!"
+        # assert len(self.agents.keys()) == 2, f"{self.__class__.__name__} only supports 1v1 scenarios!"
         self.init_states = None
 
     def load_task(self):
@@ -33,11 +33,33 @@ class SingleCombatEnv(BaseEnv):
 
     def reset(self) -> np.ndarray:
         self.current_step = 0
+        
+        # id - name (초기 setting)
+        self.ac_id_name, self.ac_name_id, self.ac_id_iff = {}, {}, {}
+        self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
+        self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
+        self.sam_id_name = {}
+
+        # aircraft/munition id - state
+        self.ac_id_state = {}
+        self.mu_id_state = {}
+        self.sam_id_state = {}
+        
+        # 전자장비 id - state
+        self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
+
+        # damage page
+        self.mu_id_target_id_dmg = {}
+
+        # detected data
+        self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
+        ###
+
+        # TODO : reset trigger 전달 및 초기값 수신 이후, 객체 생성 및 reload 진행
+        self.socket_send_recv(reset_flag = True)
         self.reset_simulators()
 
-        # ARES 와 소켓 통신
-        self.socket_send_recv(reset = True)
-
+        # reset task
         self.task.reset(self)
         obs = self.get_obs()
         return self._pack(obs)
