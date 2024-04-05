@@ -712,12 +712,8 @@ class UnControlSAMSimulator(BaseSimulator):
         # dictionary
         self.property_dict = {}
 
-        self.launch_missiles = []   # type: List[MissileSimulator]
-        self.under_missiles = []    # type: List[MissileSimulator]
-
         # recv data
-        self.recv_data = ''
-        self.sam_id_name, self.sam_id_state = {}, {}
+        self.sam_id_state = {}
 
         # initialize simulator
         self.reload()
@@ -771,23 +767,15 @@ class UnControlSAMSimulator(BaseSimulator):
         
         return ret
     
-    def parsing_data(self):
-        packet_datas = self.recv_data.split("/")
-        
-        for packet_data in packet_datas:
-            header, id, data = packet_data.split("|", 2)
-            cnt = int(data.split("<")[0])
-            data = re.search(r'\<(.*?)\>', data).group(1)
+    def set_sam_state(self, data, sam_id):
+        self.sam_id_state[sam_id] = data
 
-            if (id == "7013"):
-                sam_id, sam_name, iff, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
-                self.sam_id_name[sam_id] = sam_name
-                self.sam_id_state[sam_id] = [lon, lat, alt]
-
-    def _update_properties(self):
+    def _update_properties(self, sam_id = None):
         ################################
-        ownsam_id = [id for id, name in self.sam_id_name.items() if name == self.uid]
-        lon, lat, alt = self.sam_id_state[ownsam_id]
+        if (sam_id == None):
+            raise Exception("NO SAM ID")
+
+        lon, lat, alt = self.sam_id_state[sam_id]
 
         self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
         self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)

@@ -2,7 +2,7 @@ import gym
 from gym.utils import seeding
 import numpy as np
 from typing import Dict, Any, Tuple
-from ..core.simulatior import UnControlAircraftSimulator, AircraftSimulator, BaseSimulator
+from ..core.simulatior import UnControlAircraftSimulator, AircraftSimulator, BaseSimulator, UnControlSAMSimulator
 from ..tasks.task_base import BaseTask
 from ..utils.utils import parse_config, LLA2ECEF, LLA2NEU
 
@@ -65,6 +65,7 @@ class BaseEnv(gym.Env):
         ###
 
         self._jsbsims = {}     # type: Dict[str, AircraftSimulator]
+        self._samsims = {}
         self.load()
 
     @property
@@ -88,6 +89,10 @@ class BaseEnv(gym.Env):
         return self._jsbsims
 
     @property
+    def sams(self) -> Dict[str, UnControlSAMSimulator]:
+        return self._samsims
+
+    @property
     def time_interval(self) -> int:
         return self.agent_interaction_steps / self.sim_freq
 
@@ -101,6 +106,8 @@ class BaseEnv(gym.Env):
 
     def load_simulator_ACAM(self):
         self._jsbsims = {}
+        self._samsims = {}
+
         for ac_id, state in self.ac_id_state.items():
             lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = state
             name = self.ac_id_name[ac_id]
@@ -153,6 +160,23 @@ class BaseEnv(gym.Env):
                     sim_freq = self.sim_freq,
                     num_missiles = len(mu_id)
                 )
+
+        for sam_id, state in self.sam_id_state.items():
+            lon, lat, alt = state
+            name = self.sam_id_name[sam_id]
+            
+            self._samsims[name] = UnControlSAMSimulator(
+                uid = name,
+                color = "Red",
+                model = "SAM",
+                init_state = {
+                    "ic_h_sl_ft": alt,
+                    "ic_lat_geod_deg": lat,
+                    "ic_long_gc_deg": lon,
+                },
+                origin = [124.00, 37.00, 0.0],
+                sim_freq = self.sim_freq
+            )
 
         # Different teams have different uid[0]
         _default_team_uid = list(self._jsbsims.keys())[0][0]
@@ -224,7 +248,7 @@ class BaseEnv(gym.Env):
         self.ac_id_name, self.ac_name_id, self.ac_id_iff = {}, {}, {}
         self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
         self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
-        self.sam_id_name = {}
+        self.sam_id_name, self.sam_name_id = {}, {}
 
         # aircraft/munition id - state
         self.ac_id_state = {}
@@ -241,7 +265,6 @@ class BaseEnv(gym.Env):
         self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
         ###
 
-        # TODO : reset trigger 전달 및 초기값 수신 이후, 객체 생성 및 reload 진행
         self.socket_send_recv(reset_flag = True)
 
         # reset sim
@@ -340,6 +363,7 @@ class BaseEnv(gym.Env):
             if (id == "7013"): # 지대공 위협 설정
                 sam_id, sam_name, iff, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.sam_id_name[sam_id] = sam_name
+                self.sam_name_id[sam_name] = sam_id
                 self.sam_id_state[sam_id] = [lon, lat, alt]
 
             if (id == "7015"): # 전자장비 설정
@@ -378,6 +402,8 @@ class BaseEnv(gym.Env):
                 mu_id, target_id, dmg = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_target_id_dmg[mu_id] = {**self.mu_id_target_id_dmg, **{target_id: dmg}}
 
+        ###############################
+        # 필요 Simulator load & reset
         if (reset_flag):
             if (len(self.agents) == 0):
                 self.load_simulator_ACAM()
@@ -431,6 +457,7 @@ class BaseEnv(gym.Env):
         ################################
         for ed_id, target_id in self.rad_id_state.items():
             # AI 가 가지고 있는 radar 로 상대 (규칙기반) 정보를 얻게 되면 해당 값을 공유
+            # TODO : 추후에는 보이지 않는 항공기는 AI 의 신경망 입력 단에 전달하면 안됨 (현재는 GOD 시점)
             try:
                 if (self.agents[self.ac_id_name[self.ed_id_upid[ed_id]]].color == "Red"):
                     lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[target_id]
@@ -450,12 +477,18 @@ class BaseEnv(gym.Env):
                     if (tgt_id == agent_id):
                         agent.bloods -= dmg    
                 
-                # TODO : SAM 피격 판정 로직이 추가되어야 함
+                for sam_name, sam in self.sams.items():
+                    sam_id = self.sam_name_id[sam_name]
+                    if (tgt_id == sam_id):
+                        sam.bloods -= dmg
 
-        
         for agent_name, agent in self.agents.items():
             if (agent.bloods <= 0):
                 agent.shotdown()
+
+        for sam_name, sam in self.sams.items():
+            if (sam.bloods <= 0):
+                sam.shotdown()
         ################################
 
     def socket_send_recv(self, action = None, reset_flag = False):
@@ -482,7 +515,7 @@ class BaseEnv(gym.Env):
                         str(round(math.sqrt(vx**2 + vy**2 + vz**2), 6)) + "|9>"
 
                     # missile check
-                    if (action != None):
+                    if (action != None and len(action[agent_name]) == 11):
                         # target idx 는 ARES 에서 주는 항공기 정보를 바탕으로 idx 부여
                         gun_trigger, aim9_trigger, aim120_trigger, chaff_flare_trigger, jammer_trigger, radar_trigger, target_idx = action[agent_name][4:]
                         
@@ -528,45 +561,40 @@ class BaseEnv(gym.Env):
         temp_agent_id = [id for id in self.agents.keys()][0]
         std_lon, std_lat, std_alt = self.agents[temp_agent_id].lon0, self.agents[temp_agent_id].lat0, self.agents[temp_agent_id].alt0
         
-        # TODO : SAM 정보 update properties 가 필요함
+        for sam_name, sam in self.sams.items():
+            sam_id = self.sam_name_id[sam_name]
+
+            sam.set_sam_state(self.sam_id_state[sam_id], sam_id)
+            sam._update_properties(sam_id)
 
         for agent_name, agent in self.agents.items():
             if (agent.color == "Red"):
-                agent_id = [id for name, id in self.ac_name_id.items() if name == agent_name][0]
-
+                agent_id = self.ac_name_id[agent_name]
+                
                 agent.set_ac_state(self.ac_id_state[agent_id], agent_id)
                 agent._update_properties(agent_id)
 
         for agent_name, agent in self.agents.items():
             if (agent.color == "Blue"):
-                # 무장 피격 로직
-                for mu_id, target_id_dmg_dict in self.mu_id_target_id_dmg.items():
-                    for target_id, dmg in target_id_dmg_dict.items():
-                        if (agent_name == self.ac_id_name[target_id]):
-                            agent.bloods -= dmg
-                
-                if (agent.bloods < 0):
-                    agent.shotdown()
-                else:
-                    nearest_munition = []
-                    nearest_dist = 999999
+                # 가장 가까운 무장 갱신
+                nearest_munition = []
+                nearest_dist = 999999
 
-                    # 무장 발견 로직
-                    ac_lon, ac_lat, ac_alt = agent.get_geodetic()
-                    for mu_id, mu_state in self.mu_id_state_detected_by_ai.items():
-                        mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v = mu_state
+                ac_lon, ac_lat, ac_alt = agent.get_geodetic()
+                for mu_id, mu_state in self.mu_id_state_detected_by_ai.items():
+                    mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v = mu_state
 
-                        # deg deg m -> m m m
-                        ego_position = LLA2NEU(ac_lon, ac_lat, ac_alt, std_lon, std_lat, std_alt)
-                        enm_position = LLA2NEU(mu_lon, mu_lat, mu_alt, std_lon, std_lat, std_alt)
+                    # deg deg m -> m m m
+                    ego_position = LLA2NEU(ac_lon, ac_lat, ac_alt, std_lon, std_lat, std_alt)
+                    enm_position = LLA2NEU(mu_lon, mu_lat, mu_alt, std_lon, std_lat, std_alt)
 
-                        dist = math.sqrt((ego_position[0] - enm_position[0]) ** 2 + (ego_position[1] - enm_position[1]) ** 2 + (ego_position[2] - enm_position[2]) ** 2)
-                        if (dist < nearest_dist):
-                            nearest_munition = [mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v]
+                    dist = math.sqrt((ego_position[0] - enm_position[0]) ** 2 + (ego_position[1] - enm_position[1]) ** 2 + (ego_position[2] - enm_position[2]) ** 2)
+                    if (dist < nearest_dist):
+                        nearest_munition = [mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v]
 
-                    # ac 에 가장 가까운 munition 을 선택하고, 해당 미사일을 ac의 nearest_munition 변수에 추가
-                    if (len(nearest_munition) > 0):
-                        self.agents[agent_name].nearest_munition = nearest_munition
+                # ac 에 가장 가까운 munition 을 선택하고, 해당 미사일을 ac의 nearest_munition 변수에 추가
+                if (len(nearest_munition) > 0):
+                    self.agents[agent_name].nearest_munition = nearest_munition
                     
 
     def get_obs(self):

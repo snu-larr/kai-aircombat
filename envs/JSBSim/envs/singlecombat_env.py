@@ -55,7 +55,6 @@ class SingleCombatEnv(BaseEnv):
         self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
         ###
 
-        # TODO : reset trigger 전달 및 초기값 수신 이후, 객체 생성 및 reload 진행
         self.socket_send_recv(reset_flag = True)
         self.reset_simulators()
 
