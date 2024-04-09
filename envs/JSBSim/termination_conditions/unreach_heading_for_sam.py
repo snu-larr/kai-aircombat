@@ -1,7 +1,7 @@
 import math
 from ..core.catalog import Catalog as c
 from .termination_condition_base import BaseTerminationCondition
-from ..utils.utils import LLA2NEU
+from ..utils.utils import LLA2NEU, NEU2LLA
 import numpy as np
 
 class UnreachHeadingSAM(BaseTerminationCondition):
@@ -68,10 +68,10 @@ class UnreachHeadingSAM(BaseTerminationCondition):
         
         # vector 내적    
         delta_n, delta_e, delta_u = sam_neu[0] - ego_neu[0], sam_neu[1] - ego_neu[1], sam_neu[2] - ego_neu[2]
-        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7] + delta_u * ego_obs[8]
+        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7]
 
-        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2 + delta_u ** 2)
-        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2 + ego_obs[8] ** 2)
+        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2)
+        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2)
         delta_heading = math.acos(proj_dist / max(0.0001, (delta_value * vel_value)))        
 
         done = False
@@ -80,25 +80,24 @@ class UnreachHeadingSAM(BaseTerminationCondition):
         check_time = env.agents[agent_id].get_property_value(c.heading_check_time)
         # check heading when simulation_time exceed check_time
         if env.agents[agent_id].get_property_value(c.simulation_sim_time_sec) >= check_time:
-            if math.fabs(env.agents[agent_id].get_property_value(c.delta_heading)) > 10:
+            if math.fabs(delta_heading * 180/3.14159265) > 20:
+                print("UNREACH_HEADING!")
                 done = True
             # # if current target heading is reached, random generate a new target heading
-            # else:
-            #     delta = self.increment_size[env.heading_turn_counts]
-            #     delta_heading = env.np_random.uniform(-delta, delta) * self.max_heading_increment
-            #     delta_altitude = env.np_random.uniform(-delta, delta) * self.max_altitude_increment
-            #     delta_velocities_u = env.np_random.uniform(-delta, delta) * self.max_velocities_u_increment
-            #     new_heading = env.agents[agent_id].get_property_value(c.target_heading_deg) + delta_heading
-            #     new_heading = (new_heading + 360) % 360
-            #     new_altitude = env.agents[agent_id].get_property_value(c.target_altitude_ft) + delta_altitude
-            #     new_velocities_u = env.agents[agent_id].get_property_value(c.target_velocities_u_mps) + delta_velocities_u
-            #     env.agents[agent_id].set_property_value(c.target_heading_deg, new_heading)
-            #     env.agents[agent_id].set_property_value(c.target_altitude_ft, new_altitude)
-            #     env.agents[agent_id].set_property_value(c.target_velocities_u_mps, new_velocities_u)
-            #     env.agents[agent_id].set_property_value(c.heading_check_time, check_time + self.check_interval)
-            #     env.heading_turn_counts += 1
-            #     self.log(f'current_step:{cur_step} target_heading:{new_heading} '
-            #              f'target_altitude_ft:{new_altitude} target_velocities_u_mps:{new_velocities_u}')
+            else:
+                print("CHANGE SAM POSITION!")
+                new_sam_n = env.np_random.uniform(-10000, 10000) + sam_neu[0]
+                new_sam_e = env.np_random.uniform(-10000, 10000) + sam_neu[1]
+
+                new_sam_LLA = NEU2LLA(new_sam_n, new_sam_e, sam_neu[2])
+
+                env.sams[first_sam_id].set_sam_state(new_sam_LLA, first_sam_id)
+                env.sams[first_sam_id]._update_properties(first_sam_id)
+
+                env.agents[agent_id].set_property_value(c.heading_check_time, check_time + self.check_interval)
+                env.heading_turn_counts += 1
+                # self.log(f'current_step:{cur_step} target_heading:{new_heading} '
+                #          f'target_altitude_ft:{new_altitude} target_velocities_u_mps:{new_velocities_u}')
         if done:
             self.log(f'agent[{agent_id}] unreached heading. Total Steps={env.current_step}')
             info['heading_turn_counts'] = env.heading_turn_counts

@@ -134,7 +134,9 @@ class UnControlAircraftSimulator(BaseSimulator):
         self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
         self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
         self.ac_id_state, self.mu_id_state = {}, {}
-        self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
+        self.ac_id_lla = {}
+
+        self.rad_upid_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
         self.mu_id_state_detected_munition_by_ai = {}
         self.ac_id_state_detected_by_ai = {}
         self.mu_id_target_id_dmg = {}
@@ -195,6 +197,36 @@ class UnControlAircraftSimulator(BaseSimulator):
     
     def set_ac_state(self, data, id):
         self.ac_id_state[id] = data
+
+    def set_ac_lla(self, data, id):
+        self.ac_id_lla[id] = data
+
+    def _update_lla_properties(self, agent_id = None):
+        if (agent_id == None):
+            raise Exception("NO AGNET ID")
+
+        lon, lat, alt = self.ac_id_lla[agent_id]
+
+        self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
+        self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)
+        self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
+        self._geodetic[:] = [lon, lat, alt]
+        self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
+
+        self.property_dict[Catalog.attitude_roll_rad.name_jsbsim] = 0
+        self.property_dict[Catalog.attitude_pitch_rad.name_jsbsim] = 0
+        self.property_dict[Catalog.attitude_heading_true_rad.name_jsbsim] = 0
+        self._posture[:] = [0, 0, 0]
+
+        self.property_dict[Catalog.velocities_v_north_mps.name_jsbsim] = 0
+        self.property_dict[Catalog.velocities_v_east_mps.name_jsbsim] = 0
+        self.property_dict[Catalog.velocities_v_down_mps.name_jsbsim] = 0
+        self._velocity[:] = [0, 0, 0]
+
+        self.property_dict[Catalog.velocities_u_mps.name_jsbsim] = 0
+        self.property_dict[Catalog.velocities_v_mps.name_jsbsim] = 0
+        self.property_dict[Catalog.velocities_w_mps.name_jsbsim] = 0
+        self.property_dict[Catalog.velocities_vc_mps.name_jsbsim] = 0
 
     def _update_properties(self, agent_id = None):
         ################################
@@ -383,6 +415,12 @@ class AircraftSimulator(BaseSimulator):
         self.enemies = []
 
     def set_ac_state(self, data, id):
+        pass
+
+    def set_ac_lla(self, data, id):
+        pass
+
+    def _update_lla_properties(self, agent_id = None):
         pass
 
     def _update_properties(self):

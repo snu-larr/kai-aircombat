@@ -8,7 +8,7 @@ class MultipleCombatEnv(BaseEnv):
     """
     MultipleCombatEnv is an multi-player competitive environment.
     """
-    def __init__(self, config_name: str, port = 54000):
+    def __init__(self, config_name: str, port = 4001):
         super().__init__(config_name, port = port)
         # Env-Specific initialization here!
         self._create_records = False
@@ -35,6 +35,8 @@ class MultipleCombatEnv(BaseEnv):
             obs (dict): {agent_id: initial observation}
             share_obs (dict): {agent_id: initial state}
         """
+        print("MULTI COMBAT RESET!")
+
         self.current_step = 0
         self.dict_reset()
         

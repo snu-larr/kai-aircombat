@@ -5,6 +5,7 @@ import numpy as np
 from ..utils.utils import LLA2NEU
 
 DEG2RAD = 3.14159265/180
+RAD2DEG = 180/3.14159265
 
 class HeadingSAMReward(BaseRewardFunction):
     """
@@ -58,15 +59,15 @@ class HeadingSAMReward(BaseRewardFunction):
         
         # vector 내적    
         delta_n, delta_e, delta_u = sam_neu[0] - ego_neu[0], sam_neu[1] - ego_neu[1], sam_neu[2] - ego_neu[2]
-        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7] + delta_u * ego_obs[8]
+        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7]
 
-        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2 + delta_u ** 2)
-        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2 + ego_obs[8] ** 2)
+        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2)
+        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2)
         delta_heading = math.acos(proj_dist / max(0.0001, (delta_value * vel_value)))        
 
 
         heading_error_scale = 5.0  # degrees
-        heading_r = math.exp(-((delta_heading * DEG2RAD / heading_error_scale) ** 2))
+        heading_r = math.exp(-((delta_heading * RAD2DEG / heading_error_scale) ** 2))
 
         alt_error_scale = 15.24  # m
         alt_r = math.exp(-((delta_alt / alt_error_scale) ** 2))
@@ -74,8 +75,9 @@ class HeadingSAMReward(BaseRewardFunction):
         roll_error_scale = 0.35  # radians ~= 20 degrees
         roll_r = math.exp(-((env.agents[agent_id].get_property_value(c.attitude_roll_rad) / roll_error_scale) ** 2))
 
-        speed_error_scale = 24  # mps (~10%)
-        speed_r = math.exp(-((ego_obs[9] / speed_error_scale) ** 2))
+        # speed_error_scale = 24  # mps (~10%)
+        # speed_r = math.exp(-((ego_obs[9] / speed_error_scale) ** 2))
+        speed_r = 1
 
         reward = (heading_r * alt_r * roll_r * speed_r) ** (1 / 4)
         return self._process(reward, agent_id, (heading_r, alt_r, roll_r, speed_r))

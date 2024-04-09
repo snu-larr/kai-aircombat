@@ -24,7 +24,7 @@ def make_train_env(all_args):
     except Exception as err:
         raise(Exception, err)
     
-    def get_env_fn(rank, port = 54000):
+    def get_env_fn(rank, port = 4001):
         def init_env():
             if all_args.env_name == "SingleCombat":
                 env = SingleCombatEnv(all_args.scenario_name, port)

@@ -104,10 +104,10 @@ class SAMTask(BaseTask):
         
         # vector 내적    
         delta_n, delta_e, delta_u = sam_neu[0] - ego_neu[0], sam_neu[1] - ego_neu[1], sam_neu[2] - ego_neu[2]
-        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7] + delta_u * ego_obs[8]
+        proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7]
 
-        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2 + delta_u ** 2)
-        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2 + ego_obs[8] ** 2)
+        delta_value = math.sqrt(delta_n ** 2 + delta_e ** 2)
+        vel_value = math.sqrt(ego_obs[6] ** 2 + ego_obs[7] ** 2)
         delta_heading = math.acos(proj_dist / max(0.0001, (delta_value * vel_value)))
 
         norm_obs = np.zeros(12)
