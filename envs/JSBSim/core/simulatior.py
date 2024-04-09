@@ -202,7 +202,7 @@ class UnControlAircraftSimulator(BaseSimulator):
         if (agent_id == None):
             raise Exception("NO AGNET ID")
 
-        lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc, an, ae, ad = self.ac_id_state[agent_id]
+        lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc = self.ac_id_state[agent_id]
 
         self.property_dict[Catalog.position_long_gc_deg.name_jsbsim] = float(lon)
         self.property_dict[Catalog.position_lat_geod_deg.name_jsbsim] = float(lat)
@@ -225,10 +225,10 @@ class UnControlAircraftSimulator(BaseSimulator):
         self.property_dict[Catalog.velocities_w_mps.name_jsbsim] = float(vbz)
         self.property_dict[Catalog.velocities_vc_mps.name_jsbsim] = float(vc)
 
-        self.property_dict[Catalog.accelerations_n_pilot_x_norm.name_jsbsim] = float(an)
-        self.property_dict[Catalog.accelerations_n_pilot_y_norm.name_jsbsim] = float(ae)
-        self.property_dict[Catalog.accelerations_n_pilot_z_norm.name_jsbsim] = float(ad)
-        self._accelerations[:] = [an, ae, ad]
+        # self.property_dict[Catalog.accelerations_n_pilot_x_norm.name_jsbsim] = float(an)
+        # self.property_dict[Catalog.accelerations_n_pilot_y_norm.name_jsbsim] = float(ae)
+        # self.property_dict[Catalog.accelerations_n_pilot_z_norm.name_jsbsim] = float(ad)
+        # self._accelerations[:] = [an, ae, ad]
         
 
 class AircraftSimulator(BaseSimulator):

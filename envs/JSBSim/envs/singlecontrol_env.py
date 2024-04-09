@@ -24,27 +24,7 @@ class SingleControlEnv(BaseEnv):
 
     def reset(self):
         self.current_step = 0
-        
-        # id - name (초기 setting)
-        self.ac_id_name, self.ac_name_id, self.ac_id_iff = {}, {}, {}
-        self.ed_id_name, self.ed_name_id, self.ed_id_upid = {}, {}, {}
-        self.mu_id_name, self.mu_name_id, self.mu_id_upid = {}, {}, {}
-        self.sam_id_name, self.sam_name_id = {}, {}
-
-        # aircraft/munition id - state
-        self.ac_id_state = {}
-        self.mu_id_state = {}
-        self.sam_id_state = {}
-        
-        # 전자장비 id - state
-        self.rad_id_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
-
-        # damage page
-        self.mu_id_target_id_dmg = {}
-
-        # detected data
-        self.ac_id_state_detected_by_ai, self.mu_id_state_detected_by_ai = {}, {}
-        ###
+        self.dict_reset()
 
         self.socket_send_recv(reset_flag = True)
         self.reset_simulators()

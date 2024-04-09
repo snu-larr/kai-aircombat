@@ -53,9 +53,9 @@ class MultipleCombatTask(SingleCombatTask):
             c.velocities_v_mps,                 # 10. v_body_y  (unit: m/s)
             c.velocities_w_mps,                 # 11. v_body_z  (unit: m/s)
             c.velocities_vc_mps,                # 12. vc        (unit: m/s)
-            c.accelerations_n_pilot_x_norm,     # 13. a_north   (unit: G)
-            c.accelerations_n_pilot_y_norm,     # 14. a_east    (unit: G)
-            c.accelerations_n_pilot_z_norm,     # 15. a_down    (unit: G)
+            # c.accelerations_n_pilot_x_norm,     # 13. a_north   (unit: G)
+            # c.accelerations_n_pilot_y_norm,     # 14. a_east    (unit: G)
+            # c.accelerations_n_pilot_z_norm,     # 15. a_down    (unit: G)
         ]
         self.action_var = [
             c.fcs_aileron_cmd_norm,             # [-1., 1.]
