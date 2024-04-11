@@ -2,12 +2,12 @@ import numpy as np
 from gym import spaces
 from .task_base import BaseTask
 from ..core.catalog import Catalog as c
-from ..reward_functions import AltitudeReward, HeadingSAMReward
-from ..termination_conditions import ExtremeState, LowAltitude, Overload, Timeout, UnreachHeading, UnreachHeadingSAM
+from ..reward_functions import AltitudeReward, HeadingSAMReward, SAM_Destroy_reward
+from ..termination_conditions import ExtremeState, LowAltitude, Overload, Timeout, SAM_AC_destory
 from ..utils.utils import LLA2NEU
 import math
 
-class SAMTask(BaseTask):
+class SAM_Destroy_Task(BaseTask):
     '''
     Control target heading with discrete action space
     '''
@@ -17,13 +17,14 @@ class SAMTask(BaseTask):
         self.reward_functions = [
             HeadingSAMReward(self.config),
             AltitudeReward(self.config),
+            SAM_Destroy_reward(self.config)
         ]
         self.termination_conditions = [
-            # UnreachHeadingSAM(self.config),
             ExtremeState(self.config),
             Overload(self.config),
             LowAltitude(self.config),
             Timeout(self.config),
+            SAM_AC_destory(self.config)
         ]
 
     @property
@@ -63,16 +64,10 @@ class SAMTask(BaseTask):
 
     def load_action_space(self):
         # aileron, elevator, rudder, throttle
-        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30])
+        # self.action_space = spaces.MultiDiscrete([41, 41, 41, 30])
 
-        # # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff/Flare attack, Jammer On, Radar On, target
-        # # self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2, 2, 2, 2, 2, 2])
-        # self.action_space = spaces.Tuple([
-        #     spaces.MultiDiscrete([41, 41, 41, 30]), 
-        #     spaces.Discrete(2), spaces.Discrete(2),
-        #     spaces.Discrete(2), spaces.Discrete(2),
-        #     spaces.Discrete(2), spaces.Discrete(2), spaces.Discrete(2)
-        # ])
+        # aileron, elevator, rudder, throttle, gun attack, missile AIM9/120 attack, chaff/Flare attack, Jammer On, Radar On, target
+        self.action_space = spaces.MultiDiscrete([41, 41, 41, 30, 2, 2, 2])
 
     def get_obs(self, env, agent_id):
         """

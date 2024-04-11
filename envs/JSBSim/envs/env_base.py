@@ -26,7 +26,7 @@ class BaseEnv(gym.Env):
 
     # 192.168.100.111
     # 127.0.0.1
-    def __init__(self, config_name: str, server_ip = "192.168.100.33", port = 4001, buffer_size = 65000):
+    def __init__(self, config_name: str, server_ip = "192.168.100.110", port = 4001, buffer_size = 65000):
         # basic args
         self.config = parse_config(config_name)
         self.max_steps = getattr(self.config, 'max_steps', 100)  # type: int
@@ -374,27 +374,35 @@ class BaseEnv(gym.Env):
         #################
         
             if (id == "7011"): # 항공기 설정
-                ac_id, ac_name, iff, up_id, obj_type, equip_name, symbol_name_2d, symbol_name_3d, lon, lat, alt, op_name = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ac_id, iff, up_id, obj_type, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ac_name = ac_id
+                
                 self.ac_id_name[ac_id] = ac_name
                 self.ac_name_id[ac_name] = ac_id
                 self.ac_id_iff[ac_id] = float(iff)
                 self.ac_id_init_state[ac_id] = [float(lon), float(lat), float(alt)]
 
             if (id == "7013"): # 지대공 위협 설정
-                sam_id, sam_name, iff, upid, obj_type, equip_name, symbol_name_2d, symbol_name_3d, lon, lat, alt, op_name = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                sam_id, iff, upid, obj_type, lon, lat, alt, op_dir = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                sam_name = sam_id
+                
                 self.sam_id_name[sam_id] = sam_name
                 self.sam_name_id[sam_name] = sam_id
                 self.sam_id_state[sam_id] = [lon, lat, alt]
 
             if (id == "7015"): # 전자장비 설정
-                ed_id, ed_name, iff, upid, obj_type, equip_name = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ed_id, ed_name, iff, upid, obj_type = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ed_name = ed_id 
+                
                 self.ed_id_name[ed_id] = ed_name
                 self.ed_name_id[ed_name] = ed_id
                 self.ed_id_upid[ed_id] = upid
-                self.ed_id_state[ed_id] = [ed_name, iff, upid, obj_type, equip_name]
+                self.ed_id_state[ed_id] = [ed_name, iff, upid, obj_type]
 
             if (id == "7016"): # 무장 설정
-                mu_id, mu_name, iff, upid, obj_type, equip_name, symbol_name_2d, symbol_name_3d = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                mu_id, iff, upid, obj_type = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                mu_name = mu_id
+                
                 self.mu_id_name[mu_id] = mu_name
                 self.mu_name_id[mu_name] = mu_id
                 self.mu_id_upid[mu_id] = upid 
@@ -558,7 +566,7 @@ class BaseEnv(gym.Env):
                             
                             detected_ac_list = [target_id for ac_id, target_id in self.rad_upid_state.items() if agent_name == self.ac_id_name[ac_id]]
                             if (target_idx_ac_id[target_idx] in detected_ac_list):
-                                target_id = self.ac_id_name[target_idx_ac_id[target_idx]]
+                                target_id = target_idx_ac_id[target_idx]
                             else:
                                 target_id = "X"
 
@@ -566,6 +574,10 @@ class BaseEnv(gym.Env):
                             detected_rwr_list = [target_id for rwr_id, target_id in self.rwr_id_state.items() if agent_name == self.ac_id_name[self.ed_id_upid[rwr_id]]]
                             if (len(detected_rwr_list) == 0 and chaff_flare_trigger > 0):
                                 chaff_flare_trigger = 0
+
+                        elif (len(action[agent_name]) == 7):
+                            gun_trigger, aim9_trigger, aim120_trigger = action[agent_name][4:]
+                            target_id = [id for id in self.sams.keys()][0]
 
                         else:
                             target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
@@ -576,6 +588,14 @@ class BaseEnv(gym.Env):
                         jammer_name_list = [ed_id for ed_id, ed_state in self.ed_id_state.items() if ed_state[3] == 507 and ed_state[2] == agent_id]
                         jammer_name = jammer_name_list[0] if (len(jammer_name_list) != 0) else ""
                         
+                        # ORD|7011|12<110100011|Bear M-#1|1|171100009|101|F-15K|S*A*MF----*****|MT_F15|126.486893|36.702660|5000|방어제공(DCA)>
+                        # gun_msg = "ORD|9200|3<" + agent_name + "|" + "110100011" + "|0>"
+                        # aim9_msg = "ORD|9200|3<" + agent_name + "|" + "110100011" + "|1>"
+                        # aim120_msg = "ORD|9200|3<" + agent_name + "|" + "110100011" + "|2>"
+                        # chaff_msg = "ORD|9300|1<" + agent_name + ">"
+                        # flare_msg = "ORD|9301|1<" + agent_name + ">"
+                        
+                        # TODO : 무장 index??
                         gun_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|0>" if gun_trigger and target_id != "X" else ""
                         aim9_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|1>" if aim9_trigger and target_id != "X" else ""
                         aim120_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|2>" if aim120_trigger and target_id != "X" else ""
@@ -608,7 +628,7 @@ class BaseEnv(gym.Env):
                 self.socket.close()
 
                 print("RESET SLEEP!")
-                time.sleep(10)
+                time.sleep(20)
 
                 while True:
                     try:

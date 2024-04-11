@@ -1,7 +1,7 @@
 from .env_base import BaseEnv
 from ..tasks.heading_task import HeadingTask
 from ..tasks.following_task import SAMTask
-
+from ..tasks.sam_task import SAM_Destroy_Task
 
 class SingleControlEnv(BaseEnv):
     """
@@ -18,7 +18,7 @@ class SingleControlEnv(BaseEnv):
         if taskname == 'heading':
             self.task = HeadingTask(self.config)
         elif taskname == 'sam':
-            self.task = SAMTask(self.config)
+            self.task = SAM_Destroy_Task(self.config)
         else:
             raise NotImplementedError(f'Unknown taskname: {taskname}')
 
