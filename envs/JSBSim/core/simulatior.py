@@ -348,6 +348,9 @@ class AircraftSimulator(BaseSimulator):
         self.jsbsim_exec.set_dt(self.dt)
         self.clear_defalut_condition()
 
+        # test
+        # self.jsbsim_exec.print_property_catalog()
+
         # assign new properties
         if new_state is not None:
             self.init_state = new_state
@@ -382,6 +385,10 @@ class AircraftSimulator(BaseSimulator):
             Catalog.ic_r_rad_sec: 0.0,      # yaw rate   [rad/s]  (-2 * pi, 2 * pi)
             Catalog.ic_roc_fpm: 0.0,        # initial rate of climb [ft/min]
             Catalog.ic_terrain_elevation_ft: 0,
+
+            Catalog.wind_north_fps : 0.0,
+            Catalog.wind_east_fps : 0.0,
+            Catalog.wind_down_fps : 0.0,
         }
         for prop, value in default_condition.items():
             self.set_property_value(prop, value)

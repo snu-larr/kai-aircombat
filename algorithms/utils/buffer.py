@@ -93,14 +93,14 @@ class ReplayBuffer(Buffer):
             x (np.ndarray): 차원을 재배열할 다차원 배열.
 
         반환값:
-            np.ndarray: 재배열 및 평탄화된 배열. 첫 번째 차원이 시간 차원과 배치 차원의 조합으로 재구성되며,
+            np.ndarray: 재배열 및 평탄화된 배열. 첫 번째 차원이 시간 차원과 에이전트 차원, 배치 차원의 조합으로 재구성되며,
                         나머지 차원은 원본 배열의 차원 순서를 유지하면서 평탄화된다.
 
         예시:
-            >>> x = np.random.rand(5, 3, 2, 2)  # 예: 시간 차원(T=5), 배치 차원(N=3), 나머지 차원
+            >>> x = np.random.rand(5, 3, 2, 2)  # 예: 시간 차원(T=5), 에이전트 차원 (A=3), 배치 차원(N=3), 나머지 차원
             >>> casted_x = _cast(x)
             >>> print(casted_x.shape)
-            (15, 2, 2)  # 첫 번째 차원은 시간과 배치 차원이 결합되어 평탄화되고, 나머지 차원은 유지된다.
+            (30, 2)  # 첫 번째 차원은 시간과 배치 차원이 결합되어 평탄화되고, 나머지 차원은 유지된다.
         """
 
         return x.transpose(1, 2, 0, *range(3, x.ndim)).reshape(-1, *x.shape[3:])
@@ -357,7 +357,14 @@ class ReplayBuffer(Buffer):
             "data chunk length ({}).".format(n_rollout_threads, buffer_size, num_agents, data_chunk_length))
 
         # Transpose and reshape parallel data into sequential data
-        obs = np.vstack([ReplayBuffer._cast(buf.obs[:-1]) for buf in buffer])
+        obs = np.vstack([ReplayBuffer._cast(buf.obs[:-1]) for buf in buffer]) # Rollout x (Agent * hidden * buffer_size)
+
+        # print("A", buffer[0].obs.shape)
+        # temp = ReplayBuffer._cast(buffer[0].obs[:-1])
+        # print("B", temp.shape)
+        # print("C", obs.shape)
+        # print(" ")
+
         actions = np.vstack([ReplayBuffer._cast(buf.actions) for buf in buffer])
         masks = np.vstack([ReplayBuffer._cast(buf.masks[:-1]) for buf in buffer])
         old_action_log_probs = np.vstack([ReplayBuffer._cast(buf.action_log_probs) for buf in buffer])

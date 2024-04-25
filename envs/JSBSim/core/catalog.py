@@ -20,6 +20,10 @@ class JsbsimCatalog(Property, Enum):
 
     # position and attitude
 
+    wind_north_fps = Property("atmosphere/wind-north-fps", "wind north direction speed [ft/s]", -1000, 1000)
+    wind_east_fps = Property("atmosphere/wind-east-fps", "wind east direction speed [ft/s]", -1000, 1000)
+    wind_down_fps = Property("atmosphere/wind-down-fps", "wind down direction speed [ft/s]", -1000, 1000)
+
     position_h_sl_ft = Property("position/h-sl-ft", "altitude above mean sea level [ft]", -1400, 85000)
     position_h_agl_ft = Property(
         "position/h-agl-ft", "altitude above ground level [ft]", position_h_sl_ft.min, position_h_sl_ft.max

@@ -26,7 +26,7 @@ class BaseEnv(gym.Env):
 
     # 192.168.100.111
     # 127.0.0.1
-    def __init__(self, config_name: str, server_ip = "192.168.100.110", port = 4001, buffer_size = 65000):
+    def __init__(self, config_name: str, server_ip = "127.0.0.1", port = 4001, buffer_size = 65000):
         # basic args
         self.config = parse_config(config_name)
         self.max_steps = getattr(self.config, 'max_steps', 100)  # type: int
@@ -562,11 +562,11 @@ class BaseEnv(gym.Env):
                             
                             # radar locking 이 안된경우에는 target idx 값이 무의미하도록 변경 필요, ex) [target_idx : 3 / target_id : R0001]
                             
-                            print("ERROR CHECK : ", self.rad_upid_state, self.ed_id_upid, self.ac_id_name)
+                            # print("ERROR CHECK : ", self.rad_upid_state, self.ed_id_upid, self.ac_id_name)
                             
                             detected_ac_list = [target_id for ac_id, target_id in self.rad_upid_state.items() if agent_name == self.ac_id_name[ac_id]]
                             if (target_idx_ac_id[target_idx] in detected_ac_list):
-                                target_id = target_idx_ac_id[target_idx]
+                                target_id = str(target_idx_ac_id[target_idx])
                             else:
                                 target_id = "X"
 
@@ -577,7 +577,8 @@ class BaseEnv(gym.Env):
 
                         elif (len(action[agent_name]) == 7):
                             gun_trigger, aim9_trigger, aim120_trigger = action[agent_name][4:]
-                            target_id = [id for id in self.sams.keys()][0]
+                            chaff_flare_trigger, jammer_trigger, radar_trigger = 0, 0, 0
+                            target_id = [str(id) for id in self.sams.keys()][0]
 
                         else:
                             target_idx, gun_trigger, aim9_trigger, aim120_trigger = 0, 0, 0, 0
@@ -596,15 +597,15 @@ class BaseEnv(gym.Env):
                         # flare_msg = "ORD|9301|1<" + agent_name + ">"
                         
                         # TODO : 무장 index??
-                        gun_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|0>" if gun_trigger and target_id != "X" else ""
-                        aim9_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|1>" if aim9_trigger and target_id != "X" else ""
-                        aim120_msg = "ORD|9200|3<" + agent_name + "|" + target_id + "|2>" if aim120_trigger and target_id != "X" else ""
-                        chaff_msg = "ORD|9300|1<" + agent_name + ">" if chaff_flare_trigger else ""
-                        flare_msg = "ORD|9301|1<" + agent_name + ">" if chaff_flare_trigger else ""
+                        gun_msg = "ORD|9200|3<" + str(agent_name) + "|" + str(target_id) + "|0>" if gun_trigger and target_id != "X" else ""
+                        aim9_msg = "ORD|9200|3<" + str(agent_name) + "|" + str(target_id) + "|1>" if aim9_trigger and target_id != "X" else ""
+                        aim120_msg = "ORD|9200|3<" + str(agent_name) + "|" + str(target_id) + "|2>" if aim120_trigger and target_id != "X" else ""
+                        chaff_msg = "ORD|9300|1<" + str(agent_name) + ">" if chaff_flare_trigger else ""
+                        flare_msg = "ORD|9301|1<" + str(agent_name) + ">" if chaff_flare_trigger else ""
 
                         jammer_msg = ""
                         if (jammer_name != ""):
-                            jammer_msg = "ORD|9401|3<" + agent_name + "|" + jammer_name + "|"
+                            jammer_msg = "ORD|9401|3<" + str(agent_name) + "|" + str(jammer_name) + "|"
                             
                             if (jammer_trigger):
                                 jammer_msg += "1>"
@@ -618,29 +619,29 @@ class BaseEnv(gym.Env):
             #     for line in traceback.format_stack():
             #         print(line.strip())
 
-            print("SEND DATA : ", msg)
+            # print("SEND DATA : ", msg)
 
             msg = msg.encode()
             self.socket.sendall(msg)
             
-            if (reset_flag):
-                # 기존 socket close
-                self.socket.close()
+            # if (reset_flag):
+            #     # 기존 socket close
+            #     self.socket.close()
 
-                print("RESET SLEEP!")
-                time.sleep(20)
+            #     print("RESET SLEEP!")
+            #     time.sleep(20)
 
-                while True:
-                    try:
-                        # new socket 생성
-                        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        self.socket.connect((self.server_ip, self.port))
-                        print("RESET FLAG / CREATE NEW SOCKET & SUCCESS CONNECTING SERVER !")
-                        break
+            #     while True:
+            #         try:
+            #             # new socket 생성
+            #             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #             self.socket.connect((self.server_ip, self.port))
+            #             print("RESET FLAG / CREATE NEW SOCKET & SUCCESS CONNECTING SERVER !")
+            #             break
 
-                    except socket.error as e:
-                        print("CPP IS NOT READY, SOCKET CONNECTION FAIL, WAIT 1 SEC")
-                        time.sleep(1)
+            #         except socket.error as e:
+            #             print("CPP IS NOT READY, SOCKET CONNECTION FAIL, WAIT 1 SEC")
+            #             time.sleep(1)
 
         ###################
         # 서버로부터 action 값을 전달한 t+1초의 무장 정보와 규칙기반의 항공기의 상태 응답을 기다림
@@ -648,8 +649,8 @@ class BaseEnv(gym.Env):
         data = self.socket.recv(self.buffer_size)
         data = data.decode('cp949')
 
-        print(data)
-        print(len(data))
+        # print(data)
+        # print(len(data))
 
         # 무장 정보
         self.parsing_data(data, reset_flag = reset_flag)

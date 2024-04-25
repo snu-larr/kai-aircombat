@@ -29,7 +29,9 @@ class CloudpickleWrapper(object):
 @contextlib.contextmanager
 def clear_mpi_env_vars():
     """
-    from mpi4py import MPI will call MPI_Init by default.  If the child process has MPI environment variables, MPI will think that the child process is an MPI process just like the parent and do bad things such as hang.
+    from mpi4py import MPI will call MPI_Init by default.  
+    If the child process has MPI environment variables, 
+    MPI will think that the child process is an MPI process just like the parent and do bad things such as hang.
     This context manager is a hacky way to clear those environment variables temporarily such as when we are starting multiprocessing
     Processes.
     """
@@ -249,7 +251,7 @@ class SubprocVecEnv(VecEnv):
         self.nremotes = nenvs // in_series
         env_fns = np.array_split(env_fns, self.nremotes)
         # create Pipe connections to send/recv data from subprocesses,
-        self.remotes, self.work_remotes = zip(*[Pipe() for _ in range(self.nremotes)])
+        self.remotes, self.work_remotes = zip(*[Pipe() for _ in range(self.nremotes)]) # parent, child = Pipe()
         self.ps = [Process(target=worker, args=(work_remote, remote, CloudpickleWrapper(env_fn)))
                    for (work_remote, remote, env_fn) in zip(self.work_remotes, self.remotes, env_fns)]
         for p in self.ps:
