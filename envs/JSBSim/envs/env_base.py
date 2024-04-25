@@ -424,6 +424,7 @@ class BaseEnv(gym.Env):
                 ac_state = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 time, id, lon, lat, alt, r, p, y, vn, ve, vu, vbx, vby, vbz, vc, G, remain_fuel, weight, thrust, distance_to_target, AA_to_target, RPM = [0 if x == "1.#QNAN0" or x == "1.#INF00" else x for x in ac_state]
                 
+                # TODO : 아래 id 삭제하기 & inf/nan 처리 필요
                 if (id != 110200001):
                     self.ac_id_state[id] = [float(lon), float(lat), float(alt), float(r), float(p), float(y), float(vn), float(ve), float(-vu), float(vbx), float(vby), float(vbz), float(vc)]
 
@@ -648,6 +649,19 @@ class BaseEnv(gym.Env):
         
         data = self.socket.recv(self.buffer_size)
         data = data.decode('cp949')
+
+        # 7000번만 들어올 경우에만 통과
+        if (reset_flag):
+            while True:
+                packet_datas = data.split("ORD")[1:]
+                id_list = [packet_data.split("|", 2)[1] for packet_data in packet_datas]
+                if (any([id[0] == "8" for id in id_list])):
+                    print("###### THERE IS EIGHT NUMBER!")
+
+                    data = self.socket.recv(self.buffer_size)
+                    data = data.decode('cp949')
+                    continue
+                break
 
         # print(data)
         # print(len(data))
