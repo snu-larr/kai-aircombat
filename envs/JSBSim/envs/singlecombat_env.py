@@ -1,8 +1,8 @@
 import numpy as np
 from .env_base import BaseEnv
-from ..tasks import SingleCombatTask, SingleCombatDodgeMissileTask, HierarchicalSingleCombatDodgeMissileTask, \
-    HierarchicalSingleCombatShootTask, SingleCombatShootMissileTask, HierarchicalSingleCombatTask
-
+from ..tasks import SingleCombatTask
+from ..tasks.sam_task import SAM_Destroy_Task
+from ..tasks.heading_task import HeadingTask
 
 class SingleCombatEnv(BaseEnv):
     """
@@ -10,24 +10,16 @@ class SingleCombatEnv(BaseEnv):
     """
     def __init__(self, config_name: str, port = 4001):
         super().__init__(config_name, port = port)
-        # Env-Specific initialization here!
-        # assert len(self.agents.keys()) == 2, f"{self.__class__.__name__} only supports 1v1 scenarios!"
         self.init_states = None
 
     def load_task(self):
         taskname = getattr(self.config, 'task', None)
         if taskname == 'singlecombat':
             self.task = SingleCombatTask(self.config)
-        elif taskname == 'hierarchical_singlecombat':
-            self.task = HierarchicalSingleCombatTask(self.config)
-        elif taskname == 'singlecombat_dodge_missile':
-            self.task = SingleCombatDodgeMissileTask(self.config)
-        elif taskname == 'singlecombat_shoot':
-            self.task = SingleCombatShootMissileTask(self.config)
-        elif taskname == 'hierarchical_singlecombat_dodge_missile':
-            self.task = HierarchicalSingleCombatDodgeMissileTask(self.config)
-        elif taskname == 'hierarchical_singlecombat_shoot':
-            self.task = HierarchicalSingleCombatShootTask(self.config)
+        elif taskname == 'sam':
+            self.task = SAM_Destroy_Task(self.config)
+        elif taskname == "heading":
+            self.task = HeadingTask(self.config)
         else:
             raise NotImplementedError(f"Unknown taskname: {taskname}")
 
@@ -47,10 +39,8 @@ class SingleCombatEnv(BaseEnv):
         # switch side
         if self.init_states is None:
             self.init_states = [sim.init_state.copy() for sim in self.agents.values()]
-        # self.init_states[0].update({
-        #     'ic_psi_true_deg': (self.np_random.uniform(270, 540))%360,
-        #     'ic_h_sl_ft': self.np_random.uniform(17000, 23000),
-        # })
+
+        # TODO : 초기값 랜덤 주입?
         init_states = self.init_states.copy()
         self.np_random.shuffle(init_states)
         for idx, sim in enumerate(self.agents.values()):

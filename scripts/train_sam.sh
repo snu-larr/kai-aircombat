@@ -1,5 +1,5 @@
 #!/bin/sh
-env="SingleControl"
+env="SingleCombat"
 scenario="1/sam"
 algo="ppo"
 exp="v1"

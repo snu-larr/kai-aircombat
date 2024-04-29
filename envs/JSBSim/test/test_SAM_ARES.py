@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 from envs.JSBSim.core.catalog import Catalog as c
 from envs.JSBSim.utils.utils import in_range_rad, get_root_dir
-from envs.JSBSim.envs import SingleCombatEnv, SingleControlEnv
+from envs.JSBSim.envs import SingleCombatEnv
 from envs.JSBSim.model.baseline_actor import BaselineActor
 from envs.JSBSim.utils.utils import get_root_dir, LLA2NEU, NEU2LLA, body_ned_to_world_ned, hit_rate, damage_rate, get_AO_TA_R, world_ned_to_body_ned, cal_azi_ele_from_euler
 
@@ -67,7 +67,7 @@ class SAM_Test(ABC):
         
         args = Args()
 
-        self.env = SingleControlEnv("1/sam")
+        self.env = SingleCombatEnv("1/sam")
         self.env.seed(0)
 
         self.ego_policy = PPOActor(args, self.env.observation_space, self.env.action_space, device=torch.device("cuda"))

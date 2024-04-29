@@ -4,6 +4,9 @@ import pymap3d
 import numpy as np
 import math
 
+KNOT2METER = 0.514444
+DEG2RAD = 3.14159265/180
+
 def parse_config(filename):
     """Parse JSBSim config file.
 

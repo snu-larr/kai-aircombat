@@ -13,7 +13,7 @@ import setproctitle
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from config import get_config
 from runner.share_jsbsim_runner import ShareJSBSimRunner
-from envs.JSBSim.envs import SingleCombatEnv, SingleControlEnv, MultipleCombatEnv
+from envs.JSBSim.envs import SingleCombatEnv, MultipleCombatEnv
 from envs.env_wrappers import SubprocVecEnv, DummyVecEnv, ShareSubprocVecEnv, ShareDummyVecEnv
 
 
@@ -28,8 +28,6 @@ def make_train_env(all_args):
         def init_env():
             if all_args.env_name == "SingleCombat":
                 env = SingleCombatEnv(all_args.scenario_name, port)
-            elif all_args.env_name == "SingleControl":
-                env = SingleControlEnv(all_args.scenario_name, port)
             elif all_args.env_name == "MultipleCombat":
                 env = MultipleCombatEnv(all_args.scenario_name, port)
             else:

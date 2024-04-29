@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 from envs.JSBSim.core.catalog import Catalog as c
 from envs.JSBSim.utils.utils import in_range_rad, get_root_dir
-from envs.JSBSim.envs import SingleCombatEnv, SingleControlEnv
+from envs.JSBSim.envs import SingleCombatEnv
 from envs.JSBSim.model.baseline_actor import BaselineActor
 from envs.JSBSim.utils.utils import get_root_dir, LLA2NEU, NEU2LLA, body_ned_to_world_ned, hit_rate, damage_rate, get_AO_TA_R, world_ned_to_body_ned, cal_azi_ele_from_euler
 

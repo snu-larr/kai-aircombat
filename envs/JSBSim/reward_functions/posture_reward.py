@@ -38,6 +38,10 @@ class PostureReward(BaseRewardFunction):
         # feature: (north, east, down, vn, ve, vd)
         ego_feature = np.hstack([env.agents[agent_id].get_position(),
                                  env.agents[agent_id].get_velocity()])
+        
+        orientation_reward = 0
+        range_reward = 0
+
         for enm in env.agents[agent_id].enemies:
             enm_feature = np.hstack([enm.get_position(),
                                     enm.get_velocity()])

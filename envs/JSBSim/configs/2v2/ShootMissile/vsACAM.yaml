@@ -71,10 +71,6 @@ ai_aircraft_configs: {
 # (lontitude, latitude, altitude)
 battle_field_center: [124.00, 37.00, 0.0]
 
-max_attack_angle: 45        # unit: degree
-max_attack_distance: 14000  # unit: m
-min_attack_interval: 125     # unit: step
-
 # (lontitude, latitude, altitude)
 battle_field_center: [127.0, 37.0, 0.0]
 
