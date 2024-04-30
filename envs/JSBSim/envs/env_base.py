@@ -64,10 +64,6 @@ class BaseEnv(gym.Env):
         # damage page
         self.mu_id_target_id_dmg = {}
 
-        # detected data
-        self.ac_id_state_detected_by_ai, self.rwr_ac_id_mu_state = {}, {}
-        ###
-
         self.first_exe_flag = True
 
         self._jsbsims = {}     # type: Dict[str, AircraftSimulator]
@@ -224,9 +220,6 @@ class BaseEnv(gym.Env):
 
         # damage page
         self.mu_id_target_id_dmg = {}
-
-        # detected data
-        self.ac_id_state_detected_by_ai, self.rwr_ac_id_mu_state = {}, {}
         ###
 
     def reset(self) -> np.ndarray:
@@ -364,11 +357,11 @@ class BaseEnv(gym.Env):
                 time, mu_id, lon, lat, alt, r, p, y, v = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.mu_id_state[mu_id] = [lon, lat, alt, r, p, y, v] 
 
-            if (id == "8201"): # 레이더 탐지
+            if (id == "8201"): # 레이더 탐지 : 해당 레이더 탐지는 적군기 Aircraft 만을 탐지함 (적 Missile X)
                 time, ac_id, obj_type, rad_id, target_id, angle, dist = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.rad_upid_state[ac_id] = target_id
 
-            if (id == "8202"): # RWR 
+            if (id == "8202"): # RWR : 해당 RWR 은 적 무장만을 탐지함 (적 Aircraft X)
                 time, ed_id, target_id, target_rad_id, target_code, angle, dist = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 self.rwr_id_state[ed_id] = target_id
 
@@ -404,38 +397,6 @@ class BaseEnv(gym.Env):
                     }
                     agent.reload(new_state = new_state)
 
-        self.rwr_ac_id_mu_state = {}
-        for ed_id, target_id in self.rwr_id_state.items():
-            # AI 가 가지고 있는 RWR 로 무장 혹은 항공기 정보를 얻게 되면 해당 값을 공유
-            try:
-                if (self.agents[self.ed_id_upid[ed_id]].mode == "AI"):
-                    ac_id = self.ed_id_upid[ed_id]
-                
-                    if (target_id in self.mu_id_state.keys()):
-                        lon, lat, alt, r, p, y, v = self.mu_id_state[target_id]
-                        self.rwr_ac_id_mu_state[ac_id] = {**self.rwr_ac_id_mu_state, **{target_id : [lon, lat, alt, r, p, y, v]}}
-                    
-            except Exception as err:
-                # print(Exception, err)
-                # print(traceback.format_exc())
-                pass
-
-        ################################
-        self.ac_id_state_detected_by_ai = {}
-        for ac_id, target_id in self.rad_upid_state.items():
-            # AI 가 가지고 있는 radar 로 상대 (규칙기반) 정보를 얻게 되면 해당 값을 공유
-            # TODO : 추후에는 보이지 않는 항공기는 AI 의 신경망 입력 단에 전달하면 안됨 (현재는 GOD 시점)
-            try:
-                if (self.agents[ac_id].color == "Blue" and self.agents[target_id].color == "Red"):
-                    lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc = self.ac_id_state[target_id]
-                    self.ac_id_state_detected_by_ai[target_id] = [lon, lat, alt, r, p, y, vn, ve, vd, vbx, vby, vbz, vc]
-            except Exception as err:
-                # RAD에 잡힌 target id 가 aircraft 가 아닌 경우?
-                # print(Exception, err)
-                # print(traceback.format_exc())
-                pass
-
-        ################################
         # 피격 판정 중 자신이 맞았다면 반영
         for mu_id, tgt_id_dmg_dict in self.mu_id_target_id_dmg.items():
             for tgt_id, dmg in tgt_id_dmg_dict.items():
@@ -512,7 +473,8 @@ class BaseEnv(gym.Env):
                         jammer_id_list = [ed_id for ed_id, ed_state in self.ed_id_state.items() if ed_state[2] == 507 and ed_state[1] == agent_id]
                         jammer_id = jammer_id_list[0] if (len(jammer_id_list) != 0) else ""
                         
-                        # TODO : 무장 index??
+                        # 9200 / <agent_id, target_id, munition_id>
+                        # TODO : 0, 1, 2 를 munition_id 로 수정해야함
                         gun_msg = "ORD|9200|3<" + str(agent_id) + "|" + str(target_id) + "|0>" if gun_trigger and target_id != "X" else ""
                         aim9_msg = "ORD|9200|3<" + str(agent_id) + "|" + str(target_id) + "|1>" if aim9_trigger and target_id != "X" else ""
                         aim120_msg = "ORD|9200|3<" + str(agent_id) + "|" + str(target_id) + "|2>" if aim120_trigger and target_id != "X" else ""
@@ -597,11 +559,11 @@ class BaseEnv(gym.Env):
                 nearest_dist = 999999
 
                 ac_lon, ac_lat, ac_alt = agent.get_geodetic()
-                for ac_id, mu_state in self.rwr_ac_id_mu_state.items():
+                for ac_id, mu_id in self.rwr_id_state.items():
                     if (agent_id != ac_id):
                         continue
 
-                    mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v = mu_state
+                    mu_lon, mu_lat, mu_alt, mu_r, mu_p, mu_y, mu_v = self.mu_id_state[mu_id]
 
                     # deg deg m -> m m m
                     ego_position = LLA2NEU(ac_lon, ac_lat, ac_alt, std_lon, std_lat, std_alt)
