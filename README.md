@@ -44,6 +44,8 @@ pip install numpy torch matplotlib gym tensorboard pymap3d jsbsim==1.2.0 geograp
 
 `scripts/` 폴더는 학습, 운용할 실행파일을 bash 파일 형태로 만들어 놓은 폴더이다.
 
+`scripts/ares_test_code.cpp` ACAM 없이 학습 코드를 실행할 경우, dummy data 로 규칙기반 AI 가상항공기 정보를 전달해주는 test code 이다.
+
 ## Neural Network Architecture
 신경망의 경우 MLP-GRU-MLP 의 가장 간단한 형태로 구성되어 있다.
 해당 신경망 정보는 `algorithms/utils/ppo_actor.py` 코드를 확인하면 된다.
@@ -79,9 +81,14 @@ SAM task 와 1v1 공중 교전 임무로 구성되어 있다. AI 내에 무장 �
 ### Training
 
 ```bash
+# 1. run cpp code (ares_test_code.cpp)
+
+# 2. run AI code
 cd scripts
 bash train_*.sh
 ```
+
+Visual Studio 2019 를 이용하여 ares_test_code.cpp 를 실행 (굳이 Visual Studio 를 쓰지 않아도 되며 각자 지닌 cpp compiler 를 이용해도 됨)
 
 - `--env-name` 가상 전장 환경 정보로 ['SingleCombat', 'MultipleCombat'] 를 사용할 수 있다.
 - `--scenario` `envs/JBSim/configs` 에 정의된 yaml 파일로 진행될 수 있다.
@@ -91,6 +98,9 @@ bash train_*.sh
 
 ### Evaluate and Render
 ```bash
+# 1. run cpp code (ares_test_code.cpp)
+
+# 2. run AI code
 cd envs/JSBSim/test
 python test_*.py
 ```
