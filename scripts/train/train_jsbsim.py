@@ -59,8 +59,6 @@ def make_eval_env(all_args):
         def init_env():
             if all_args.env_name == "SingleCombat":
                 env = SingleCombatEnv(all_args.scenario_name, port)
-            elif all_args.env_name == "SingleControl":
-                env = SingleControlEnv(all_args.scenario_name, port)
             elif all_args.env_name == "MultipleCombat":
                 env = MultipleCombatEnv(all_args.scenario_name, port)
             else:

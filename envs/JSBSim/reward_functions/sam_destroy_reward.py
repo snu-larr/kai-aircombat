@@ -25,7 +25,7 @@ class SAM_Destroy_reward(BaseRewardFunction):
         """
         first_sam_id = [id for id in env.sams.keys()][0]
 
-        # 발사할때마다 minus?
+        # TODO : 발사할때마다 minus?
 
 
         reward = 0

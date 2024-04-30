@@ -116,17 +116,18 @@ class BaseEnv(gym.Env):
         for ac_id, state in self.ac_id_init_state.items():
             lon, lat, alt = state
             iff = self.ac_id_iff[ac_id]
+            op_mode = self.ac_id_opmode[ac_id]
 
             mu_id = [id for id, up_id in self.mu_id_upid.items() if up_id == ac_id]
 
-            # TODO : 추후에는 iff 값이 0일 경우 AI
-            if (iff == 1):
+            if (op_mode == 1): # 0 : Rule / 1 : AI / 2 : SIM
+                temp_color = "Blue" if iff == 1 else "Red"
                 self._jsbsims[ac_id] = AircraftSimulator(
                     uid = ac_id,
-                    color = "Blue",
+                    color = temp_color,
                     model = "f16",
                     init_state = {
-                        "ic_h_sl_ft": alt,
+                        "ic_h_sl_ft": alt * 1 / 0.3048,
                         "ic_lat_geod_deg": lat,
                         "ic_long_gc_deg": lon,
                         "ic_psi_true_deg" : 0.0,
@@ -140,15 +141,19 @@ class BaseEnv(gym.Env):
         for ac_id, state in self.ac_id_init_state.items():
             lon, lat, alt = state
             iff = self.ac_id_iff[ac_id]
+            op_mode = self.ac_id_opmode[ac_id]
 
             mu_id = [id for id, up_id in self.mu_id_upid.items() if up_id == ac_id]
-            if (iff == 2):
+
+            if (op_mode != 1): # 0 : Rule / 1 : AI / 2 : SIM
+                temp_color = "Blue" if iff == 1 else "Red"
+
                 self._jsbsims[ac_id] = UnControlAircraftSimulator(
                     uid = ac_id,
-                    color = "Red",
+                    color = temp_color,
                     model = "f16",
                     init_state = {
-                        "ic_h_sl_ft": alt,
+                        "ic_h_sl_ft": alt * 1 / 0.3048,
                         "ic_lat_geod_deg": lat,
                         "ic_long_gc_deg": lon,
                         "ic_psi_true_deg" : 0,
@@ -167,7 +172,7 @@ class BaseEnv(gym.Env):
                 color = "Red",
                 model = "SAM",
                 init_state = {
-                    "ic_h_sl_ft": alt,
+                    "ic_h_sl_ft": alt * 1 / 0.3048,
                     "ic_lat_geod_deg": lat,
                     "ic_long_gc_deg": lon,
                 },
@@ -197,6 +202,7 @@ class BaseEnv(gym.Env):
 
     def dict_reset(self):
         self.ac_id_iff = {}
+        self.ac_id_opmode = {}
         self.ed_id_upid = {}
         self.mu_id_upid = {}
         
@@ -311,9 +317,10 @@ class BaseEnv(gym.Env):
         #################
         
             if (id == "7011"): # 항공기 설정
-                ac_id, iff, up_id, obj_type, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ac_id, op_mode, iff, up_id, obj_type, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 
                 self.ac_id_iff[ac_id] = float(iff)
+                self.ac_id_opmode[ac_id] = float(op_mode)
                 self.ac_id_init_state[ac_id] = [float(lon), float(lat), float(alt)]
 
             if (id == "7013"): # 지대공 위협 설정
@@ -541,17 +548,17 @@ class BaseEnv(gym.Env):
 
         # 7000번만 들어올 경우에만 통과
         # CHECK : cpp test code 에서는 주석필요
-        if (reset_flag):
-            while True:
-                packet_datas = data.split("ORD")[1:]
-                id_list = [packet_data.split("|", 2)[1] for packet_data in packet_datas]
-                if (any([id[0] == "8" for id in id_list])):
-                    print("###### THERE IS EIGHT NUMBER!")
+        # if (reset_flag):
+        #     while True:
+        #         packet_datas = data.split("ORD")[1:]
+        #         id_list = [packet_data.split("|", 2)[1] for packet_data in packet_datas]
+        #         if (any([id[0] == "8" for id in id_list])):
+        #             print("###### THERE IS EIGHT NUMBER!")
 
-                    data = self.socket.recv(self.buffer_size)
-                    data = data.decode('cp949')
-                    continue
-                break
+        #             data = self.socket.recv(self.buffer_size)
+        #             data = data.decode('cp949')
+        #             continue
+        #         break
 
         # print(data)
         # print(len(data))
@@ -672,15 +679,26 @@ class BaseEnv(gym.Env):
                 timestamp = self.render_step * self.time_interval
                 self.render_step += 1
                 f.write(f"#{timestamp:.3f}\n")
+
+                # aircraft
                 for air_id, sim in self._jsbsims.items():
                     if (air_id == aircraft_id or aircraft_id == None):    
                         log_msg = sim.log()
                         if log_msg is not None:
                             f.write(log_msg + "\n")
+                
+                # temp??
                 for sim in self._tempsims.values():
                     log_msg = sim.log()
                     if log_msg is not None:
                         f.write(log_msg + "\n")
+
+                # sam
+                for sam_id, sam in self._samsims.items():
+                    log_msg = sam.log()
+                    if (log_msg is not None):
+                        f.write(log_msg + "\n")
+
         # TODO: real time rendering [Use FlightGear, etc.]
         else:
             raise NotImplementedError

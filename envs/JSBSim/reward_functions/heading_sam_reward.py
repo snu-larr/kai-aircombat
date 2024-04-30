@@ -55,8 +55,8 @@ class HeadingSAMReward(BaseRewardFunction):
         ego_neu = LLA2NEU(*ego_obs[:3])
         sam_neu = LLA2NEU(*sam_obs)
 
-        delta_alt = sam_neu[2] -  ego_neu[2]
-        
+        delta_alt = ego_obs[2] - sam_obs[2]
+
         # vector 내적    
         delta_n, delta_e, delta_u = sam_neu[0] - ego_neu[0], sam_neu[1] - ego_neu[1], sam_neu[2] - ego_neu[2]
         proj_dist = delta_n * ego_obs[6] + delta_e * ego_obs[7]
@@ -78,6 +78,8 @@ class HeadingSAMReward(BaseRewardFunction):
         # speed_error_scale = 24  # mps (~10%)
         # speed_r = math.exp(-((ego_obs[9] / speed_error_scale) ** 2))
         speed_r = 1
+        
+        # print("REWARD : ", heading_r, alt_r, roll_r, speed_r)
 
         reward = (heading_r * alt_r * roll_r * speed_r) ** (1 / 4)
         return self._process(reward, agent_id, (heading_r, alt_r, roll_r, speed_r))

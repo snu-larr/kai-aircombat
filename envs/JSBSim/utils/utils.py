@@ -29,7 +29,7 @@ def get_root_dir():
     return os.path.join(os.path.split(os.path.realpath(__file__))[0], '..')
 
 
-def LLA2NEU(lon, lat, alt, lon0=120.0, lat0=60.0, alt0=0):
+def LLA2NEU(lon, lat, alt, lon0=124.0, lat0=37.0, alt0=0):
     """Convert from Geodetic Coordinate System to NEU Coordinate System.
 
     Args:

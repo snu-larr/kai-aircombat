@@ -98,6 +98,9 @@ class SAM_Test(ABC):
             if dones.any():
                 break
 
-model_path = "../../../scripts/results/SingleControl/1/sam/ppo/v1/run32/actor_-3.973480224609375_23.pt"
+model_folder = "../../../scripts/results/SingleCombat/1/sam/ppo/v1/run32/"
+pt_file = "actor_124.77304077148438_5434.pt"
+model_path = model_folder + pt_file
+
 test = SAM_Test(model_path)
 test.run()

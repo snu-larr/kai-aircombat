@@ -611,3 +611,10 @@ class UnControlSAMSimulator(BaseSimulator):
         self.property_dict[Catalog.position_h_sl_m.name_jsbsim] = float(alt)
         self._geodetic[:] = [lon, lat, alt]
         self._position[:] = LLA2NEU(*self._geodetic, self.lon0, self.lat0, self.alt0)
+
+    def log(self):
+        lon, lat, alt = self.get_geodetic()
+        log_msg = f"{self.uid},T={lon}|{lat}|{alt}|{0.0}|{0.0}|{0.0},"
+        log_msg += "Name=ZU-23," # TODO : SAM model?
+        log_msg += f"Color={self.color}"
+        return log_msg
