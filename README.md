@@ -3,10 +3,15 @@
 
 ## Definition
 `Air Combat Effectiveness Analysis Model (ACAM)` : 아레스에서 개발한 항공무장효과분석모델
+
 `학습기반 AI 가상항공기` : 강화학습을 통해 비행제어를 하는 가상항공기
+
 `규칙기반 AI 가상항공기` : 규칙기반 (ACAM) 을 통해 비행제어를 하는 가상항공기
+
 `(MA)PPO` : (Multi Agent) Proximal Policy Optimization
+
 `JSBSim` : 오픈소스 비행 동역학 프로그램 [JSBSim Link](https://github.com/JSBSim-Team/jsbsim)
+
 `TacView` : 오픈소스 비행 데이터 분석 툴 [TacView Link](https://www.tacview.net/)
 
 ## Install 
