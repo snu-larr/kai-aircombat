@@ -81,7 +81,7 @@ SAM task 와 1v1 공중 교전 임무로 구성되어 있다. AI 내에 무장 �
 ### Training
 
 ```bash
-# 1. run cpp code (ares_test_code.cpp)
+# 1. run cpp code (scripts/ares_test_code.cpp)
 
 # 2. run AI code
 cd scripts
@@ -98,7 +98,7 @@ Visual Studio 2019 를 이용하여 ares_test_code.cpp 를 실행 (굳이 Visual
 
 ### Evaluate and Render
 ```bash
-# 1. run cpp code (ares_test_code.cpp)
+# 1. run cpp code (scripts/ares_test_code.cpp)
 
 # 2. run AI code
 cd envs/JSBSim/test
