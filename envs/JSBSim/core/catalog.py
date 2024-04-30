@@ -3,7 +3,7 @@ import math
 from enum import Enum
 from collections import namedtuple
 from numpy.linalg import norm
-from gym.spaces import Box, Discrete
+from gymnasium.spaces import Box, Discrete
 from ..utils.utils import in_range_deg
 
 """

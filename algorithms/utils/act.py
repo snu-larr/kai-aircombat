@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import gym.spaces
+import gymnasium as gym
 from .mlp import MLPLayer
 from .distributions import BetaShootBernoulli, Categorical, DiagGaussian, Bernoulli
 

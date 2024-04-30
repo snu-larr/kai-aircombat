@@ -14,7 +14,16 @@
 
 `TacView` : 오픈소스 비행 데이터 분석 툴 [TacView Link](https://www.tacview.net/)
 
-## Install 
+## Install (update)
+Follow installation instructions in the [LARR CloseAirCombat](https://github.com/snu-larr/CloseAirCombat?tab=readme-ov-file#install-update) repository.
+
+You may have to install the following packages:
+```shell
+conda activate jsbsim
+pip install matplotlib tensorboard
+```
+
+## Install (original)
 
 ```shell
 # create python env
