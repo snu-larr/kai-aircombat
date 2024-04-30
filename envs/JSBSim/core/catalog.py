@@ -570,7 +570,7 @@ class MixedCatalog(dict):
         #         except KeyError:
         #             self[name] = Property(name_jsbsim=name_jsbsim, access=access)
 
-        jsbsim_props = jsbsim_props.split("\n")
+        # jsbsim_props = jsbsim_props.split("\n")
         for jsbsim_prop in jsbsim_props:
             try:
                 [name_jsbsim, access] = jsbsim_prop.split(" ")
