@@ -317,7 +317,7 @@ class BaseEnv(gym.Env):
         #################
         
             if (id == "7011"): # 항공기 설정
-                ac_id, op_mode, iff, up_id, obj_type, lon, lat, alt = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
+                ac_id, iff, up_id, obj_type, lon, lat, alt, op_mode = [float(x) if x.replace("-", "").replace('.', '').isdigit() else x for x in data.split("|")]
                 
                 self.ac_id_iff[ac_id] = float(iff)
                 self.ac_id_opmode[ac_id] = float(op_mode)
