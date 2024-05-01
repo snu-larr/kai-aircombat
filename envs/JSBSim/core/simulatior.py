@@ -126,17 +126,9 @@ class UnControlAircraftSimulator(BaseSimulator):
         # dictionary
         self.property_dict = {}
 
-        # recv data
-        self.recv_data = ''
-        self.ed_id_upid = {}
-        self.mu_id_upid = {}
-        self.ac_id_state, self.mu_id_state = {}, {}
+        # ac state
+        self.ac_id_state = {}
         self.ac_id_lla = {}
-
-        self.rad_upid_state, self.rwr_id_state, self.mws_id_state = {}, {}, {}
-        self.mu_id_state_detected_munition_by_ai = {}
-        self.ac_id_state_detected_by_ai = {}
-        self.mu_id_target_id_dmg = {}
 
         self.nearest_munition = []
 

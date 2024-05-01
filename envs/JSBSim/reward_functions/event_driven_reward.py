@@ -32,7 +32,7 @@ class EventDrivenReward(BaseRewardFunction):
         # Launch 한 missile 이 격추를 성공했을 때
         for mu_id, target_id_dmg_dict in env.mu_id_target_id_dmg.items():
             # agent 가 laucnh 한 missile 인 경우
-            # TODO : 피격 판정이 한 tick 에서만 일어나는지? 2tick 이 걸쳐서 일어날 수 있는지?
+            # 피격 판정은 한 tick 에서만 일어남
             if (env.mu_id_upid[mu_id] == agent_id):
                 reward += 200
 

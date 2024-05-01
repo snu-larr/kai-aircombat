@@ -106,6 +106,7 @@ class MultipleCombatTask(SingleCombatTask):
         norm_obs[7] = ego_state[11] / 340            # 7. ego v_body_z   (unit: mh)
         norm_obs[8] = ego_state[12] / 340            # 8. ego vc   (unit: mh)(unit: 5G)
         
+        # TODO : 현재는 전지적 시점에서 적군기 위치까지 고려함
         # (2) relative inof w.r.t partner+enemies state
         offset = 8
         for sim in env.agents[agent_id].partners + env.agents[agent_id].enemies:
@@ -129,7 +130,7 @@ class MultipleCombatTask(SingleCombatTask):
 
             missile_neu = LLA2NEU(missile_lon, missile_lat, missile_alt, env.center_lon, env.center_lat, env.center_alt)
             
-            # TODO : missile VN, VE, VD
+            # TODO : missile VN, VE, VD 갑 수신 가능한지 확인해보기
             missile_heading_direction = body_ned_to_world_ned(1, 0, 0, missile_r * DEG2RAD, missile_p * DEG2RAD, missile_y * DEG2RAD)
             missile_vn = missile_heading_direction[0] * missile_v
             missile_ve = missile_heading_direction[1] * missile_v

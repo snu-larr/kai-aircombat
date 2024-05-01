@@ -151,7 +151,7 @@ class SingleCombatTask(BaseTask):
 
             missile_neu = LLA2NEU(missile_lon, missile_lat, missile_alt, env.center_lon, env.center_lat, env.center_alt)
             
-            # TODO : missile VN, VE, VD
+            # TODO : missile VN, VE, VD 갑 수신 가능한지 확인해보기
             missile_heading_direction = body_ned_to_world_ned(1, 0, 0, missile_r * DEG2RAD, missile_p * DEG2RAD, missile_y * DEG2RAD)
             missile_vn = missile_heading_direction[0] * missile_v
             missile_ve = missile_heading_direction[1] * missile_v
