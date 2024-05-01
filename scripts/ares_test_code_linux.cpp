@@ -27,7 +27,7 @@ void handle_thread(int clientSocket)
     while (1)
     {
         if (scene_flag == 0) {
-            ac_data = "ORD|7011|7<1|1|1|100|AC|124.0|37.0|6000>" // 항공기 설정(7) : id, op_mode, iff, upid, objtype, lon, lat, alt
+            ac_data = "ORD|7011|8<1|1|100|AC|124.0|37.0|6000|1>" // 항공기 설정(8) : id, iff, upid, objtype, lon, lat, alt, op_mode
                 
                 // 지대공 설정 (8) : sam_id, iff, upid, obj_type, lon, lat, alt, op_dir
                 "ORD|7013|8<5|2|-1|SAM|124.0|37.3|6000|50>" 
@@ -36,8 +36,8 @@ void handle_thread(int clientSocket)
                 "ORD|8101|22<0|1|124.0|37.0|6000|0|0|0|0|0|0|800|0|0|0|1|2|3|4|5|6|7>";
         }
         else if (scene_flag == 1) {
-            ac_data = "ORD|7011|7<1|1|1|100|0|124.0|37.0|6000>" // 항공기 설정(7) : id, op_mode, iff, upid, objtype, lon, lat, alt
-                "ORD|7011|7<3|0|2|100|0|124.5|37.5|6000>"
+            ac_data = "ORD|7011|8<1|1|100|0|124.0|37.0|6000|1>" // 항공기 설정(7) : id, iff, upid, objtype, lon, lat, alt, op_mode
+                "ORD|7011|8<3|2|100|0|124.5|37.5|6000|0>"
             
                 // 탑재장비(4) : id, iff, upid, obtype
                 "ORD|7015|4<11|1|1|300>"  
@@ -66,10 +66,10 @@ void handle_thread(int clientSocket)
                 "ORD|8202|7<0|16|1|1|2|3|4>";
         }
         else if (scene_flag == 2) {
-            ac_data = "ORD|7011|7<1|1|1|100|1|124.0|37.0|6000>" // 항공기 설정(7) : id, op_mode, iff, upid, objtype, lon, lat, alt
-                "ORD|7011|7<2|1|1|100|1|124.5|37.0|6000>"
-                "ORD|7011|7<3|0|2|100|1|124.5|37.5|6000>"
-                "ORD|7011|7<4|0|2|100|1|124.0|37.5|6000>"
+           ac_data = "ORD|7011|8<1|1|100|1|124.0|37.0|6000|1>" // 항공기 설정(7) : id, iff, upid, objtype, lon, lat, alt, op_mode
+                "ORD|7011|8<2|1|100|1|124.5|37.0|6000|1>"
+                "ORD|7011|8<3|2|100|1|124.5|37.5|6000|0>"
+                "ORD|7011|8<4|2|100|1|124.0|37.5|6000|0>"
 
                 // 지대공 설정 (8) : sam_id, iff, upid, obj_type, lon, lat, alt, op_dir
                 "ORD|7013|8<5|2|-1|200|124.0|37.5|6000|SAM>"
@@ -190,14 +190,14 @@ int main() {
     
     ///
     if (scene_flag == 0) {
-        first_data = "ORD|7011|7<1|1|1|100|AC|124.0|37.0|6000>"
+        first_data = "ORD|7011|8<1|1|100|AC|124.0|37.0|6000|1>" // 항공기 설정(8) : id, iff, upid, objtype, lon, lat, alt, op_mode
             "ORD|7013|8<5|2|-1|SAM|124.0|37.3|6000|50>";
     }
     else if (scene_flag == 2) {
-        first_data = "ORD|7011|7<1|1|1|100|1|124.0|37.0|6000>" // 항공기 설정(7) : id, op_mode, iff, upid, objtype, lon, lat, alt
-            "ORD|7011|7<2|1|1|100|1|124.5|37.0|6000>"
-            "ORD|7011|7<3|0|2|100|1|124.5|37.5|6000>"
-            "ORD|7011|7<4|0|2|100|1|124.0|37.5|6000>"
+        first_data = "ORD|7011|8<1|1|100|1|124.0|37.0|6000|1>" // 항공기 설정(8) : id, iff, upid, objtype, lon, lat, alt, op_mode
+            "ORD|7011|7<2|1|1|100|1|124.5|37.0|6000|1>"
+            "ORD|7011|7<3|2|100|1|124.5|37.5|6000|0>"
+            "ORD|7011|7<4|2|100|1|124.0|37.5|6000|0>"
 
             // 지대공 설정 (8) : sam_id, iff, upid, obj_type, lon, lat, alt, op_dir
             "ORD|7013|8<5|2|-1|200|124.0|37.5|6000|SAM>"
